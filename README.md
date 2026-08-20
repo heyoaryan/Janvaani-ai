@@ -140,14 +140,21 @@ git commit -m "Prepare JanVaani AI for deployment"
 git push -u origin main
 ```
 
+### Deploy the backend on Render
+
+1. In Render, choose **New → Blueprint** and select this repository. The included `render.yaml` creates the Express web service from `server/`.
+2. Add `SARVAM_API_KEY` for real voice/AI responses, or leave it empty to use the built-in mock responses.
+3. Add `MONGO_URI` only if persistent MongoDB data is needed. The demo works without it.
+4. Copy the deployed Render URL and check `https://your-api.example.com/api/health`.
+
 ### Deploy the frontend on Vercel
 
 1. Import this GitHub repository into Vercel.
 2. Keep the repository root as the project root. The included `vercel.json` builds `client` and serves `client/dist`.
-3. Add `VITE_API_URL` in Vercel Environment Variables, pointing to the deployed backend URL including `/api`, for example `https://your-api.example.com/api`.
+3. Add `VITE_API_URL` in Vercel Environment Variables, pointing to the deployed Render backend URL including `/api`, for example `https://janvaani-ai-api.onrender.com/api`.
 4. Deploy. Vercel will rewrite React Router routes to `index.html`.
 
-The Express backend in `server/` must be deployed separately on a Node.js host. Set its `PORT` and optional `MONGO_URI`, `SARVAM_API_KEY`, and `GEMINI_API_KEY` environment variables there. The backend already listens on the host-provided `PORT`.
+The frontend and backend are separate deployments: Vercel serves `client/`, while Render runs the Express API in `server/`.
 
 ## 🔌 API Endpoints
 

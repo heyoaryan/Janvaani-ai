@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: janvaani-ai-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: MONGO_URI
+        sync: false
