@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 import { useVoiceRecognition, useTextToSpeech } from '@/hooks/useVoice';
 import { useAuth } from '@/contexts/AuthContext';
+import { API_BASE } from '@/services/api';
 
 const VoiceContext = createContext(null);
 
@@ -32,7 +33,7 @@ export function VoiceProvider({ children }) {
     setError(null);
     try {
       const sessionId = user.sessionId || `sess-${Date.now()}`;
-      const res = await fetch('/api/voice/process', {
+      const res = await fetch(`${API_BASE}/voice/process`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: text, sessionId, language, userProfile: user }),

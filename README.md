@@ -128,6 +128,27 @@ cd client
 npm run build
 ```
 
+## ☁️ GitHub and Vercel Deployment
+
+The repository is ready to connect to GitHub and deploy the React frontend on Vercel.
+
+### Push to GitHub
+
+```bash
+git add .
+git commit -m "Prepare JanVaani AI for deployment"
+git push -u origin main
+```
+
+### Deploy the frontend on Vercel
+
+1. Import this GitHub repository into Vercel.
+2. Keep the repository root as the project root. The included `vercel.json` builds `client` and serves `client/dist`.
+3. Add `VITE_API_URL` in Vercel Environment Variables, pointing to the deployed backend URL including `/api`, for example `https://your-api.example.com/api`.
+4. Deploy. Vercel will rewrite React Router routes to `index.html`.
+
+The Express backend in `server/` must be deployed separately on a Node.js host. Set its `PORT` and optional `MONGO_URI`, `SARVAM_API_KEY`, and `GEMINI_API_KEY` environment variables there. The backend already listens on the host-provided `PORT`.
+
 ## 🔌 API Endpoints
 
 | Endpoint | Method | Description |

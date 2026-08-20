@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, User, Briefcase, Calendar, Sparkles, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import { API_BASE } from '@/services/api';
 
 const STEPS = [
   {
@@ -54,7 +55,7 @@ const Onboarding = ({ onComplete }) => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/onboarding/complete', {
+      const res = await fetch(`${API_BASE}/onboarding/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
