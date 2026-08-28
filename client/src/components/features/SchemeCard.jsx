@@ -38,16 +38,30 @@ const SchemeCard = ({ scheme, matchPercentage = 0, onClick, onCheckEligibility }
   if (rules.minAge || rules.maxAge) summary.push(`${t('eligibility.age')} ${rules.minAge}-${rules.maxAge}`);
   if (rules.farmerRequired) summary.push(t('schemeDetail.farmerRequired'));
   if (rules.studentRequired) summary.push(t('schemeDetail.studentRequired'));
+  // Gender-specific schemes
+  const genderSpecific = rules.gender?.length === 1 && rules.gender[0] !== 'all';
+  const genderLabel = genderSpecific
+    ? rules.gender[0] === 'female' ? `👩 ${t('eligibility.female')} only`
+    : rules.gender[0] === 'male'   ? `👨 ${t('eligibility.male')} only`
+    : null
+    : null;
 
   return (
     <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 300, damping: 20 }}>
       <Card hover className="h-full flex flex-col">
-        <div className="flex items-start justify-between mb-3">
-          <Badge variant="neutral" className={`capitalize ${categoryColors[scheme.category?.toLowerCase()?.replace(/\s+/g, '-')] || ''}`}>
-            {localizeCategory(scheme.category, t)}
-          </Badge>
+        <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+            <Badge variant="neutral" className={`capitalize shrink-0 ${categoryColors[scheme.category?.toLowerCase()?.replace(/\s+/g, '-')] || ''}`}>
+              {localizeCategory(scheme.category, t)}
+            </Badge>
+            {genderLabel && (
+              <Badge variant="neutral" className="shrink-0 bg-pink-50 text-pink-700">
+                {genderLabel}
+              </Badge>
+            )}
+          </div>
           {showMatch && (
-            <Badge variant={statusConfig[eligibilityStatus].color} dot>
+            <Badge variant={statusConfig[eligibilityStatus].color} dot className="shrink-0">
               <StatusIcon className="w-3 h-3" />
               {statusConfig[eligibilityStatus].label}
             </Badge>
@@ -90,10 +104,10 @@ const SchemeCard = ({ scheme, matchPercentage = 0, onClick, onCheckEligibility }
         </div>
 
         <div className="flex gap-2 mt-auto">
-          <Button variant="outline" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); onClick?.(scheme); }}>
+          <Button variant="outline" size="sm" className="flex-1 min-w-0 truncate" onClick={(e) => { e.stopPropagation(); onClick?.(scheme); }}>
             {t('schemeCard.details')}
           </Button>
-          <Button variant="primary" size="sm" className="flex-1" onClick={(e) => { e.stopPropagation(); onCheckEligibility?.(scheme); }}>
+          <Button variant="primary" size="sm" className="flex-1 min-w-0 truncate" onClick={(e) => { e.stopPropagation(); onCheckEligibility?.(scheme); }}>
             {t('schemeFinder.checkEligibility')}
           </Button>
         </div>

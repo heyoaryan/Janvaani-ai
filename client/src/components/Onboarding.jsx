@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Briefcase, Calendar, ArrowRight, ArrowLeft, Check, MapPin, Globe, Building2 } from 'lucide-react';
+import { User, Briefcase, Calendar, ArrowRight, ArrowLeft, Check, MapPin, Globe, Building2, Users } from 'lucide-react';
 import { LANGUAGES } from '@/i18n/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -208,6 +208,7 @@ const Onboarding = ({ onComplete }) => {
   const [formData, setFormData] = useState({
     name: '',
     dob: '',
+    gender: '',
     city: '',
     occupation: '',
   });
@@ -256,6 +257,48 @@ const Onboarding = ({ onComplete }) => {
         />
       ),
       valid: () => formData.dob.length > 0,
+    },
+    {
+      id: 'gender',
+      icon: Users,
+      title: () => t('onboarding.stepGenderTitle'),
+      subtitle: () => t('onboarding.stepGenderSubtitle'),
+      content: () => (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { key: 'male',   emoji: '👨', label: t('eligibility.male') },
+            { key: 'female', emoji: '👩', label: t('eligibility.female') },
+            { key: 'other',  emoji: '🧑', label: t('eligibility.other') },
+          ].map((opt) => (
+            <motion.button
+              key={opt.key}
+              onClick={() => setFormData({ ...formData, gender: opt.key })}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              className={`flex flex-col items-center gap-2 py-5 rounded-2xl border-2 transition-all ${
+                formData.gender === opt.key
+                  ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                  : 'border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
+              }`}
+            >
+              <span className="text-3xl">{opt.emoji}</span>
+              <span className={`text-sm font-semibold ${formData.gender === opt.key ? 'text-indigo-700' : 'text-gray-700'}`}>
+                {opt.label}
+              </span>
+              {formData.gender === opt.key && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center"
+                >
+                  <Check className="w-3 h-3 text-white" />
+                </motion.div>
+              )}
+            </motion.button>
+          ))}
+        </div>
+      ),
+      valid: () => formData.gender.length > 0,
     },
     {
       id: 'city',
@@ -343,7 +386,7 @@ const Onboarding = ({ onComplete }) => {
       const res = await fetch(`${API_BASE}/onboarding/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: formData.name, occupation: formData.occupation, age, city: formData.city, dob: formData.dob }),
+        body: JSON.stringify({ name: formData.name, occupation: formData.occupation, age, city: formData.city, dob: formData.dob, gender: formData.gender }),
       });
       const data = await res.json();
       if (data.success) {
@@ -361,6 +404,7 @@ const Onboarding = ({ onComplete }) => {
       age,
       city: formData.city,
       dob: formData.dob,
+      gender: formData.gender,
     };
     localStorage.setItem('janvaani_onboarding', 'complete');
     localStorage.setItem('janvaani_profile', JSON.stringify(profile));

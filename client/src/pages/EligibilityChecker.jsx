@@ -77,10 +77,11 @@ const EligibilityChecker = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('eligibility.gender')}</label>
             <select
-              value={user.gender || 'male'}
+              value={user.gender || ''}
               onChange={(e) => updateUser({ gender: e.target.value })}
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
+              <option value="">{t('schemeFinder.allLocations').replace('locations', 'genders') || '— Select —'}</option>
               <option value="male">{t('eligibility.male')}</option>
               <option value="female">{t('eligibility.female')}</option>
               <option value="other">{t('eligibility.other')}</option>
