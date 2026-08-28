@@ -60,13 +60,13 @@ const Header = ({ onMenuToggle }) => {
                 </button>
               </div>
 
-              {/* Center: Navigation Links */}
-              <nav className="flex items-center gap-2 mx-auto">
+              {/* Center: Navigation Links — hidden on mobile (sidebar handles it) */}
+              <nav className="hidden lg:flex items-center gap-2 mx-auto">
                 {navLinks.map((link) => (
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
                       location.pathname === link.path
                         ? 'text-white bg-primary-600 shadow-md'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -76,6 +76,9 @@ const Header = ({ onMenuToggle }) => {
                   </Link>
                 ))}
               </nav>
+
+              {/* Mobile: app name in center */}
+              <span className="lg:hidden text-sm font-bold text-gray-900 mx-auto">{t('appName')}</span>
 
               {/* Right: Language Picker */}
               <div className="relative language-menu-container">
@@ -102,7 +105,7 @@ const Header = ({ onMenuToggle }) => {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: -10 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50"
+                      className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] max-h-96 overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50"
                     >
                       <div className="px-4 py-2 border-b border-gray-100">
                         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">

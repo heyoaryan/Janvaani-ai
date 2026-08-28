@@ -22,10 +22,14 @@ const CompareSchemes = () => {
   const rulesB = b ? eligibilityBounds(b.eligibilityRules) : null;
 
   const Row = ({ label, left, right }) => (
-    <div className="grid grid-cols-3 gap-3 py-3 border-b border-gray-100 text-sm">
-      <div className="font-semibold text-gray-500">{label}</div>
-      <div className="text-gray-800">{left}</div>
-      <div className="text-gray-800">{right}</div>
+    <div className="py-3 border-b border-gray-100 text-sm">
+      {/* Label */}
+      <p className="font-semibold text-gray-400 text-xs uppercase tracking-wide mb-2">{label}</p>
+      {/* Values: side by side on sm+, stacked on xs */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="text-gray-800 min-w-0 break-words">{left}</div>
+        <div className="text-gray-800 min-w-0 break-words">{right}</div>
+      </div>
     </div>
   );
 
@@ -59,10 +63,10 @@ const CompareSchemes = () => {
         </Card>
       ) : (
         <Card>
-          <div className="grid grid-cols-3 gap-3 pb-3 border-b border-gray-200">
-            <div />
-            <Link to={`/schemes/${a.id}`} className="font-bold text-primary-700 hover:underline">{locA.displayName}</Link>
-            <Link to={`/schemes/${b.id}`} className="font-bold text-primary-700 hover:underline">{locB.displayName}</Link>
+          {/* Scheme name header */}
+          <div className="grid grid-cols-2 gap-3 pb-3 mb-1 border-b border-gray-200">
+            <Link to={`/schemes/${a.id}`} className="font-bold text-primary-700 hover:underline text-sm break-words">{locA.displayName}</Link>
+            <Link to={`/schemes/${b.id}`} className="font-bold text-primary-700 hover:underline text-sm break-words">{locB.displayName}</Link>
           </div>
           <Row label={t('compare.vs')} left={localizeCategory(a.category, t)} right={localizeCategory(b.category, t)} />
           <Row label={t('compare.benefits')} left={list(locA.displayBenefits)} right={list(locB.displayBenefits)} />

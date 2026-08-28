@@ -54,7 +54,7 @@ const Sidebar = ({ isOpen, onClose }) => {
           x: isOpen ? 0 : '-100%',
         }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="fixed top-0 left-0 z-50 h-full w-72 bg-white border-r border-gray-200 shadow-2xl lg:shadow-none lg:!translate-x-0 lg:z-30 lg:static lg:h-screen lg:sticky lg:top-0 overflow-hidden flex flex-col flex-shrink-0"
+        className="fixed top-0 left-0 z-50 h-full w-72 max-w-[85vw] bg-white border-r border-gray-200 shadow-2xl lg:shadow-none lg:!translate-x-0 lg:z-30 lg:sticky lg:top-0 lg:h-[100dvh] overflow-hidden flex flex-col flex-shrink-0"
       >
         {/* Logo Section - Always visible */}
         <div className="flex items-center gap-3 p-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-saffron-50">

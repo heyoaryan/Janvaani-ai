@@ -38,9 +38,9 @@ const LifeEvents = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-4">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('lifeEvents.title')}</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{t('lifeEvents.title')}</h1>
         <p className="text-gray-600">{t('lifeEvents.subtitle')}</p>
       </div>
 
@@ -88,7 +88,7 @@ const LifeEvents = () => {
               </Button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
-              These government schemes can help you during this life event:
+              {t('lifeEvents.schemesForEvent')} {selectedEvent.name}:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {relatedSchemes.length > 0 ? (

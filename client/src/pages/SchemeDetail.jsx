@@ -74,11 +74,11 @@ const SchemeDetail = () => {
               >
                 {saved ? t('forYou.saved') : t('forYou.save')}
               </Button>
-              <Link to={`/eligibility?scheme=${scheme.id}`}>
-                <Button variant="primary" className="w-full sm:w-auto">{t('schemeFinder.checkEligibility')}</Button>
+              <Link to={`/eligibility?scheme=${scheme.id}`} className="block w-full sm:w-auto">
+                <Button variant="primary" className="w-full">{t('schemeFinder.checkEligibility')}</Button>
               </Link>
-              <Link to={`/missing-docs?scheme=${scheme.id}`}>
-                <Button variant="outline" icon={FileText} className="w-full sm:w-auto">{t('schemeDetail.missingDocs')}</Button>
+              <Link to={`/missing-docs?scheme=${scheme.id}`} className="block w-full sm:w-auto">
+                <Button variant="outline" icon={FileText} className="w-full">{t('schemeDetail.missingDocs')}</Button>
               </Link>
             </div>
           </div>
@@ -136,7 +136,7 @@ const SchemeDetail = () => {
           {activeTab === 'eligibility' && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900">{t('schemeDetail.eligibilityCriteria')}</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {[
                   { label: t('schemeDetail.minAge'), value: `${rules.minAge} ${t('schemeDetail.years')}` },
                   { label: t('schemeDetail.maxAge'), value: `${rules.maxAge} ${t('schemeDetail.years')}` },

@@ -11,20 +11,18 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="h-[100dvh] bg-gray-50 flex overflow-hidden">
       {/* Sidebar - Fixed left, full height */}
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header - Centered, not touching edges */}
+        {/* Header */}
         <Header onMenuToggle={() => setSidebarOpen(prev => !prev)} />
         
         {/* Main content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="w-full h-full">
-            <Outlet />
-          </div>
+          <Outlet />
         </main>
         
         {/* Footer */}
