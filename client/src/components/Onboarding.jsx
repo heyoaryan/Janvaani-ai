@@ -1,322 +1,479 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Briefcase, Calendar, ArrowRight, ArrowLeft, Check, MapPin } from 'lucide-react';
-import { INDIAN_STATES } from '@/data/indianStates';
+import { User, Briefcase, Calendar, ArrowRight, ArrowLeft, Check, MapPin, Globe, Building2 } from 'lucide-react';
+import { LANGUAGES } from '@/i18n/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+// ── Custom DOB Input ───────────────────────────────────────────────────────────
+// Supports typing DD/MM/YYYY or selecting via three dropdowns
+const DOBInput = ({ value, onChange }) => {
+  // value is always "YYYY-MM-DD" or ""
+  const parts = value ? value.split('-') : ['', '', ''];
+  const [year, month, day] = parts;
+
+  // Text input state: what user sees while typing
+  const [text, setText] = useState(value ? `${day}/${month}/${year}` : '');
+  const [mode, setMode] = useState('dropdowns'); // 'type' | 'dropdowns'
+  const inputRef = useRef(null);
+
+  const currentYear = new Date().getFullYear();
+  const years  = Array.from({ length: 100 }, (_, i) => currentYear - i);
+  const months = [
+    'January','February','March','April','May','June',
+    'July','August','September','October','November','December',
+  ];
+  const daysInMonth = (m, y) => {
+    if (!m || !y) return 31;
+    return new Date(Number(y), Number(m), 0).getDate();
+  };
+  const days = Array.from({ length: daysInMonth(month, year) }, (_, i) => i + 1);
+
+  const emitISO = (d, m, y) => {
+    if (d && m && y && String(y).length === 4) {
+      onChange(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
+    } else {
+      onChange('');
+    }
+  };
+
+  // Handle typed input: auto-insert slashes, validate on complete
+  const handleType = (e) => {
+    let raw = e.target.value.replace(/[^\d]/g, '').slice(0, 8);
+    let formatted = raw;
+    if (raw.length > 4) formatted = raw.slice(0,2) + '/' + raw.slice(2,4) + '/' + raw.slice(4);
+    else if (raw.length > 2) formatted = raw.slice(0,2) + '/' + raw.slice(2);
+    setText(formatted);
+
+    if (raw.length === 8) {
+      const d = raw.slice(0,2), m = raw.slice(2,4), y = raw.slice(4,8);
+      if (Number(d) >= 1 && Number(d) <= 31 && Number(m) >= 1 && Number(m) <= 12) {
+        emitISO(d, m, y);
+      } else {
+        onChange('');
+      }
+    } else {
+      onChange('');
+    }
+  };
+
+  if (mode === 'type') {
+    return (
+      <div className="space-y-3">
+        <input
+          ref={inputRef}
+          type="text"
+          inputMode="numeric"
+          value={text}
+          onChange={handleType}
+          placeholder="DD/MM/YYYY"
+          className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-xl font-mono font-bold text-center shadow-sm tracking-widest transition-all"
+          autoFocus
+        />
+        <button
+          type="button"
+          onClick={() => setMode('dropdowns')}
+          className="w-full text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
+        >
+          ↕ Switch to dropdown selectors
+        </button>
+      </div>
+    );
+  }
+
+  // Dropdown mode
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2">
+        {/* Day */}
+        <select
+          value={day || ''}
+          onChange={(e) => emitISO(e.target.value, month, year)}
+          className="px-2 py-3.5 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-center font-semibold text-gray-800 text-sm transition-all cursor-pointer"
+        >
+          <option value="">Day</option>
+          {days.map((d) => (
+            <option key={d} value={String(d).padStart(2,'0')}>{d}</option>
+          ))}
+        </select>
+
+        {/* Month */}
+        <select
+          value={month || ''}
+          onChange={(e) => emitISO(day, e.target.value, year)}
+          className="px-2 py-3.5 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-center font-semibold text-gray-800 text-sm transition-all cursor-pointer"
+        >
+          <option value="">Month</option>
+          {months.map((m, i) => (
+            <option key={m} value={String(i+1).padStart(2,'0')}>{m}</option>
+          ))}
+        </select>
+
+        {/* Year */}
+        <select
+          value={year || ''}
+          onChange={(e) => emitISO(day, month, e.target.value)}
+          className="px-2 py-3.5 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-center font-semibold text-gray-800 text-sm transition-all cursor-pointer"
+        >
+          <option value="">Year</option>
+          {years.map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => { setMode('type'); setTimeout(() => inputRef.current?.focus(), 50); }}
+        className="w-full text-xs text-indigo-500 hover:text-indigo-700 transition-colors"
+      >
+        ✏️ Type date instead (DD/MM/YYYY)
+      </button>
+    </div>
+  );
+};
+
+const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+
+// ── Language selector screen ──────────────────────────────────────────────────
+const LanguageStep = ({ onSelect }) => (
+  <div className="flex flex-col h-full">
+    <div className="text-center mb-6">
+      <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-50 mb-4">
+        <Globe className="w-8 h-8 text-indigo-600" />
+      </div>
+      <h2 className="text-2xl font-extrabold text-gray-900 mb-1">Choose your language</h2>
+      <p className="text-sm text-gray-500">अपनी भाषा चुनें • ਭਾਸ਼ਾ ਚੁਣੋ • ভাষা বেছে নিন</p>
+    </div>
+
+    <div className="grid grid-cols-2 gap-2.5 overflow-y-auto scrollbar-hide flex-1">
+      {LANGUAGES.map((lang) => (
+        <motion.button
+          key={lang.code}
+          onClick={() => onSelect(lang.code)}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          className="flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 border-gray-100 hover:border-indigo-300 hover:bg-indigo-50 transition-all text-left group"
+        >
+          <span className="text-2xl">{lang.flag}</span>
+          <div>
+            <p className="font-semibold text-gray-900 text-sm leading-tight">{lang.name}</p>
+            <p className="text-xs text-gray-400 leading-tight">{lang.englishName}</p>
+          </div>
+        </motion.button>
+      ))}
+    </div>
+  </div>
+);
+
+// ── Main component ────────────────────────────────────────────────────────────
 const Onboarding = ({ onComplete }) => {
-  const { t } = useLanguage();
-  const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState({ name: '', occupation: '', age: '', state: '' });
+  const { t, setLanguage } = useLanguage();
+
+  // step -1 = language picker, 0..N = profile steps
+  const [step, setStep] = useState(-1);
+  const [formData, setFormData] = useState({
+    name: '',
+    dob: '',
+    city: '',
+    occupation: '',
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const OCCUPATIONS = [
+    { key: 'student',      label: t('onboarding.occupations.student') },
+    { key: 'farmer',       label: t('onboarding.occupations.farmer') },
+    { key: 'employed',     label: t('onboarding.occupations.employed') },
+    { key: 'self-employed',label: t('onboarding.occupations.selfEmployed') },
+    { key: 'business',     label: t('onboarding.occupations.business') },
+    { key: 'homemaker',    label: t('onboarding.occupations.homemaker') },
+    { key: 'unemployed',   label: t('onboarding.occupations.unemployed') },
+    { key: 'retired',      label: t('onboarding.occupations.retired') },
+    { key: 'other',        label: t('onboarding.occupations.other') },
+  ];
 
   const STEPS = [
     {
       id: 'name',
       icon: User,
-      field: 'name',
+      title: () => t('onboarding.step1Title'),
+      subtitle: () => t('onboarding.step1Subtitle'),
+      content: () => (
+        <input
+          type="text"
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder={t('onboarding.namePlaceholder')}
+          className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg font-medium text-center shadow-sm transition-all"
+          autoFocus
+          onKeyDown={(e) => { if (e.key === 'Enter' && isStepValid()) handleNext(); }}
+        />
+      ),
+      valid: () => formData.name.trim().length > 0,
+    },
+    {
+      id: 'dob',
+      icon: Calendar,
+      title: () => t('onboarding.stepDobTitle'),
+      subtitle: () => t('onboarding.stepDobSubtitle'),
+      content: () => (
+        <DOBInput
+          value={formData.dob}
+          onChange={(val) => setFormData({ ...formData, dob: val })}
+        />
+      ),
+      valid: () => formData.dob.length > 0,
+    },
+    {
+      id: 'city',
+      icon: Building2,
+      title: () => t('onboarding.stepCityTitle'),
+      subtitle: () => t('onboarding.stepCitySubtitle'),
+      content: () => (
+        <input
+          type="text"
+          value={formData.city}
+          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+          placeholder={t('onboarding.cityPlaceholder')}
+          className="w-full px-5 py-4 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-lg font-medium text-center shadow-sm transition-all"
+          autoFocus
+          onKeyDown={(e) => { if (e.key === 'Enter' && isStepValid()) handleNext(); }}
+        />
+      ),
+      valid: () => formData.city.trim().length > 0,
     },
     {
       id: 'occupation',
       icon: Briefcase,
-      field: 'occupation',
-      options: [
-        { key: 'student', label: t('onboarding.occupations.student') },
-        { key: 'farmer', label: t('onboarding.occupations.farmer') },
-        { key: 'business', label: t('onboarding.occupations.business') },
-        { key: 'employed', label: t('onboarding.occupations.employed') },
-        { key: 'unemployed', label: t('onboarding.occupations.unemployed') },
-        { key: 'self-employed', label: t('onboarding.occupations.selfEmployed') },
-        { key: 'homemaker', label: t('onboarding.occupations.homemaker') },
-        { key: 'retired', label: t('onboarding.occupations.retired') },
-        { key: 'other', label: t('onboarding.occupations.other') },
-      ],
-    },
-    {
-      id: 'state',
-      icon: MapPin,
-      field: 'state',
-    },
-    {
-      id: 'age',
-      icon: Calendar,
-      field: 'age',
-      inputType: 'number',
+      title: () => t('onboarding.step2Title'),
+      subtitle: () => t('onboarding.step2Subtitle'),
+      content: () => (
+        <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-hide">
+          {OCCUPATIONS.map((opt) => (
+            <motion.button
+              key={opt.key}
+              onClick={() => setFormData({ ...formData, occupation: opt.key })}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-all flex items-center justify-between ${
+                formData.occupation === opt.key
+                  ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
+                  : 'border-gray-100 hover:border-indigo-200 hover:bg-gray-50'
+              }`}
+            >
+              <span className="font-semibold text-sm">{opt.label}</span>
+              {formData.occupation === opt.key && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0"
+                >
+                  <Check className="w-3 h-3 text-white" />
+                </motion.div>
+              )}
+            </motion.button>
+          ))}
+        </div>
+      ),
+      valid: () => formData.occupation.length > 0,
     },
   ];
 
   const currentStep = STEPS[step];
-  const progress = ((step + 1) / STEPS.length) * 100;
+  const totalSteps = STEPS.length;
+  const progress = step >= 0 ? ((step + 1) / totalSteps) * 100 : 0;
+
+  const isStepValid = () => step >= 0 && STEPS[step]?.valid();
 
   const handleNext = () => {
-    if (step < STEPS.length - 1) {
-      setStep(step + 1);
-    }
+    if (step < totalSteps - 1) setStep(step + 1);
   };
 
   const handleBack = () => {
-    if (step > 0) {
-      setStep(step - 1);
-    }
+    if (step === 0) setStep(-1);
+    else if (step > 0) setStep(step - 1);
+  };
+
+  const handleLanguageSelect = (code) => {
+    setLanguage(code);
+    setStep(0);
   };
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    // Derive age from DOB
+    const age = formData.dob
+      ? Math.floor((Date.now() - new Date(formData.dob)) / (365.25 * 24 * 3600 * 1000))
+      : null;
+
     try {
       const res = await fetch(`${API_BASE}/onboarding/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          occupation: formData.occupation,
-          age: formData.age,
-          state: formData.state,
-        }),
+        body: JSON.stringify({ name: formData.name, occupation: formData.occupation, age, city: formData.city, dob: formData.dob }),
       });
       const data = await res.json();
       if (data.success) {
         localStorage.setItem('janvaani_onboarding', 'complete');
         localStorage.setItem('janvaani_profile', JSON.stringify(data.profile));
         onComplete?.(data.profile);
+        return;
       }
-    } catch (err) {
-      // Fallback for offline mode
-      const profile = {
-        sessionId: `profile-${Date.now()}`,
-        name: formData.name,
-        occupation: formData.occupation,
-        age: parseInt(formData.age, 10),
-        state: formData.state,
-      };
-      localStorage.setItem('janvaani_onboarding', 'complete');
-      localStorage.setItem('janvaani_profile', JSON.stringify(profile));
-      onComplete?.(profile);
-    } finally {
-      setIsSubmitting(false);
-    }
+    } catch (_) { /* fallback below */ }
+
+    const profile = {
+      sessionId: `profile-${Date.now()}`,
+      name: formData.name,
+      occupation: formData.occupation,
+      age,
+      city: formData.city,
+      dob: formData.dob,
+    };
+    localStorage.setItem('janvaani_onboarding', 'complete');
+    localStorage.setItem('janvaani_profile', JSON.stringify(profile));
+    onComplete?.(profile);
+    setIsSubmitting(false);
   };
 
-  const isStepValid = () => {
-    if (step === 0) return formData.name.trim().length > 0;
-    if (step === 1) return formData.occupation.trim().length > 0;
-    if (step === 2) return Boolean(formData.state);
-    if (step === 3) return formData.age && parseInt(formData.age, 10) > 0;
-    return false;
-  };
+  const isLastStep = step === totalSteps - 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-primary-900/95 via-primary-800/95 to-primary-700/95 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-100 p-4">
+      {/* Subtle background pattern */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-indigo-100 opacity-60 blur-3xl" />
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 rounded-full bg-orange-100 opacity-50 blur-3xl" />
+      </div>
+
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden"
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+        className="relative w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden"
       >
-        {/* Progress bar */}
-        <div className="h-2.5 bg-gray-100">
+        {/* Top accent bar */}
+        <div className="h-1.5 bg-gray-100">
           <motion.div
-            className="h-full bg-gradient-to-r from-primary-500 via-primary-600 to-saffron-500"
+            className="h-full bg-gradient-to-r from-indigo-500 to-orange-400"
             initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            animate={{ width: step === -1 ? '5%' : `${progress}%` }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
           />
         </div>
 
-        <div className="p-8 sm:p-10">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, scale: 0.8, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ type: 'spring', stiffness: 300 }}
-              className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-50 to-saffron-50 text-primary-600 mb-5 shadow-sm"
-            >
-              <currentStep.icon className="w-10 h-10" />
-            </motion.div>
-            <motion.h2
-              key={`title-${step}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-3xl font-extrabold text-gray-900 mb-2"
-            >
-              {step === 0 ? t('onboarding.step1Title') :
-               step === 1 ? t('onboarding.step2Title') :
-               step === 2 ? t('onboarding.stepStateTitle') :
-               t('onboarding.step3Title')}
-            </motion.h2>
-            <motion.p
-              key={`sub-${step}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
-              className="text-sm text-gray-600"
-            >
-              {step === 0 ? t('onboarding.step1Subtitle') :
-               step === 1 ? t('onboarding.step2Subtitle') :
-               step === 2 ? t('onboarding.stepStateSubtitle') :
-               t('onboarding.step3Subtitle')}
-            </motion.p>
+        {/* App brand strip */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-2">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <span className="text-white text-xs font-black">J</span>
+            </div>
+            <span className="text-sm font-bold text-gray-900">JanVaani AI</span>
           </div>
-
-          {/* Step content */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
+          {step === -1 && (
+            <button
+              onClick={() => {
+                localStorage.setItem('janvaani_onboarding', 'complete');
+                onComplete?.({});
+              }}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
-              {currentStep.field === 'state' ? (
-                <div className="mb-8">
-                  <select
-                    value={formData.state}
-                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                    className="w-full px-4 py-4 rounded-xl border-2 border-gray-200 focus:border-primary-500 outline-none text-base"
-                  >
-                    <option value="">{t('schemeFinder.allLocations')}</option>
-                    {INDIAN_STATES.map((s) => (
-                      <option key={s.id} value={s.id}>{t(`states.${s.id}`)}</option>
-                    ))}
-                  </select>
-                </div>
-              ) : currentStep.options ? (
-                <div className="space-y-2.5 mb-8 max-h-96 overflow-y-auto scrollbar-hide">
-                  {currentStep.options.map((option) => (
-                    <motion.button
-                      key={option.key}
-                      onClick={() => setFormData({ ...formData, occupation: option.key })}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all ${
-                        formData.occupation === option.key
-                          ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-md'
-                          : 'border-gray-200 hover:border-primary-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">{option.label}</span>
-                        {formData.occupation === option.key && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center"
-                          >
-                            <Check className="w-4 h-4 text-white" />
-                          </motion.div>
-                        )}
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              ) : (
-                <div className="mb-8">
-                  <input
-                    type={currentStep.inputType || 'text'}
-                    value={formData[currentStep.field]}
-                    onChange={(e) => setFormData({ ...formData, [currentStep.field]: e.target.value })}
-                    placeholder={
-                      step === 0 ? t('onboarding.namePlaceholder') :
-                      step === 3 ? t('onboarding.agePlaceholder') : ''
-                    }
-                    className="w-full px-6 py-5 rounded-xl border-2 border-gray-200 focus:border-primary-500 focus:ring-0 outline-none text-lg text-center font-medium shadow-sm hover:border-gray-300 transition-all"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && isStepValid()) {
-                        step === STEPS.length - 1 ? handleSubmit() : handleNext();
-                      }
-                    }}
-                  />
-                  {step === 3 && formData.age && (
-                    <p className="text-center text-sm text-gray-500 mt-2">
-                      {formData.age} {t('onboarding.years')}
-                    </p>
-                  )}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between gap-4">
-            {step > 0 ? (
-              <motion.button
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                onClick={handleBack}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors font-medium"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                {t('back')}
-              </motion.button>
-            ) : (
-              <button
-                onClick={() => {
-                  localStorage.setItem('janvaani_onboarding', 'complete');
-                  onComplete?.({});
-                }}
-                className="text-sm text-gray-500 hover:text-gray-700 underline"
-              >
-                {t('onboarding.skip')}
-              </button>
-            )}
-
-            {step === STEPS.length - 1 ? (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleSubmit}
-                disabled={!isStepValid() || isSubmitting}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
-              >
-                {isSubmitting ? t('loading') : t('onboarding.letsStart')}
-                <Check className="w-5 h-5" />
-              </motion.button>
-            ) : (
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleNext}
-                disabled={!isStepValid()}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-700 text-white font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
-              >
-                {t('next')}
-                <ArrowRight className="w-5 h-5" />
-              </motion.button>
-            )}
-          </div>
-
-          {/* Step indicator */}
-          <div className="flex justify-center gap-2 mt-6">
-            {STEPS.map((_, idx) => (
-              <div
-                key={idx}
-                className={`h-2 rounded-full transition-all ${
-                  idx === step ? 'w-8 bg-primary-600' : 'w-2 bg-gray-300'
-                }`}
-              />
-            ))}
-          </div>
+              Skip →
+            </button>
+          )}
+          {step >= 0 && (
+            <span className="text-xs text-gray-400 font-medium">{step + 1} / {totalSteps}</span>
+          )}
         </div>
 
-        {/* Welcome message at the top */}
-        <div className="absolute top-0 left-0 right-0 text-center pt-6">
-          <motion.p
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-white font-bold text-lg"
-          >
-            {t('onboarding.welcome')}
-          </motion.p>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="text-white/80 text-sm mt-1"
-          >
-            {t('onboarding.subtitle')}
-          </motion.p>
+        <div className="px-6 pb-6 pt-2">
+          <AnimatePresence mode="wait">
+            {step === -1 ? (
+              <motion.div
+                key="lang-step"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                transition={{ duration: 0.25 }}
+              >
+                <LanguageStep onSelect={handleLanguageSelect} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key={`step-${step}`}
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -30 }}
+                transition={{ duration: 0.25 }}
+              >
+                {/* Step icon + title */}
+                <div className="text-center mb-6">
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', stiffness: 300 }}
+                    className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-50 mb-3"
+                  >
+                    {React.createElement(currentStep.icon, { className: 'w-7 h-7 text-indigo-600' })}
+                  </motion.div>
+                  <h2 className="text-2xl font-extrabold text-gray-900 mb-1">{currentStep.title()}</h2>
+                  <p className="text-sm text-gray-500">{currentStep.subtitle()}</p>
+                </div>
+
+                {/* Field */}
+                <div className="mb-6">{currentStep.content()}</div>
+
+                {/* Navigation */}
+                <div className="flex items-center justify-between gap-3">
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    onClick={handleBack}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors text-sm font-medium"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    {t('back')}
+                  </motion.button>
+
+                  {isLastStep ? (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleSubmit}
+                      disabled={!isStepValid() || isSubmitting}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
+                    >
+                      {isSubmitting ? t('loading') : t('onboarding.letsStart')}
+                      <Check className="w-4 h-4" />
+                    </motion.button>
+                  ) : (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleNext}
+                      disabled={!isStepValid()}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
+                    >
+                      {t('next')}
+                      <ArrowRight className="w-4 h-4" />
+                    </motion.button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Dot indicators — only for profile steps */}
+          {step >= 0 && (
+            <div className="flex justify-center gap-1.5 mt-5">
+              {STEPS.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    idx === step ? 'w-6 bg-indigo-500' : idx < step ? 'w-1.5 bg-indigo-300' : 'w-1.5 bg-gray-200'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </motion.div>
     </div>

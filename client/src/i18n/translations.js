@@ -153,11 +153,18 @@ export const translations = {
     
     // Onboarding
     onboarding: {
-      welcome: 'जनवाणी में आपका स्वागत है',
-      subtitle: 'चलो आपके लिए सही योजनाएं खोजने में आपकी मदद करें',
+      welcome: 'जनवाणी AI में आपका स्वागत है',
+      subtitle: 'सरकारी सेवाएं, आपकी भाषा में',
+      languageTitle: 'अपनी भाषा चुनें',
+      languageSubtitle: 'आगे की जानकारी उसी भाषा में मांगी जाएगी',
       step1Title: 'आपका नाम क्या है?',
       step1Subtitle: 'बस अपना पहला नाम बताएं',
       namePlaceholder: 'अपना नाम यहाँ लिखें...',
+      stepDobTitle: 'जन्म तिथि क्या है?',
+      stepDobSubtitle: 'यह हमें उम्र-आधारित योजनाएं खोजने में मदद करता है',
+      stepCityTitle: 'आप किस शहर में रहते हैं?',
+      stepCitySubtitle: 'आपके नज़दीकी सेवाएं और योजनाएं दिखाने के लिए',
+      cityPlaceholder: 'शहर का नाम लिखें...',
       step2Title: 'आप क्या करते हैं?',
       step2Subtitle: 'हम आपके लिए सही योजनाएं सुझा सकते हैं',
       occupations: {
@@ -525,11 +532,18 @@ export const translations = {
     
     // Onboarding
     onboarding: {
-      welcome: 'Welcome to JanVaani',
-      subtitle: 'Let\'s help you find the right schemes',
+      welcome: 'Welcome to JanVaani AI',
+      subtitle: 'Government Services, In Your Voice',
+      languageTitle: 'Choose your language',
+      languageSubtitle: 'We\'ll ask everything in the language you pick',
       step1Title: 'What is your name?',
       step1Subtitle: 'Just your first name is fine',
       namePlaceholder: 'Enter your name here...',
+      stepDobTitle: 'What is your date of birth?',
+      stepDobSubtitle: 'Helps us find age-specific schemes for you',
+      stepCityTitle: 'Which city do you live in?',
+      stepCitySubtitle: 'To show nearby services and local schemes',
+      cityPlaceholder: 'Enter your city name...',
       step2Title: 'What do you do?',
       step2Subtitle: 'We can suggest schemes right for you',
       occupations: {
