@@ -1,8 +1,8 @@
-fastapi==0.111.0
-uvicorn[standard]==0.29.0
-python-multipart==0.0.9
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.12
 python-dotenv==1.0.1
-pydantic==2.7.1
+pydantic==2.10.3
 
 # STT — runs fully local, no API key needed
 faster-whisper==1.0.3
@@ -11,7 +11,7 @@ faster-whisper==1.0.3
 gTTS==2.5.1
 
 # HTTP client — Groq + web search calls
-httpx==0.27.0
+httpx==0.27.2
 
 # Web search (optional — only needed if SEARCHAPI/SERPAPI/BING keys are set)
 requests==2.32.3
