@@ -8,3 +8,10 @@ client/dist/
 server/uploads/
 *.log
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
