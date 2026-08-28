@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Shield, AlertTriangle, CheckCircle2, XCircle, Phone, ExternalLink } from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Alert from '@/components/ui/Alert';
+import Button from '@/components/ui/Button';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const ScamAnalysis = ({
   riskLevel = 'medium',
@@ -12,12 +14,12 @@ const ScamAnalysis = ({
   analyzedText = '',
   onCheckAnother,
 }) => {
+  const { t } = useLanguage();
   const riskConfig = {
-    low: { label: 'Low Risk', variant: 'success', description: 'This appears to be safe.' },
-    medium: { label: 'Medium Risk', variant: 'warning', description: 'Exercise caution with this.' },
-    high: { label: 'High Risk', variant: 'error', description: 'This is likely a scam. Do not proceed.' },
+    low: { label: t('scamCheck.low'), variant: 'success', description: t('scamCheck.lowDesc') },
+    medium: { label: t('scamCheck.medium'), variant: 'warning', description: t('scamCheck.mediumDesc') },
+    high: { label: t('scamCheck.high'), variant: 'error', description: t('scamCheck.highDesc') },
   };
-
   const config = riskConfig[riskLevel] || riskConfig.medium;
 
   return (
@@ -32,7 +34,7 @@ const ScamAnalysis = ({
             }`} />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Risk Assessment</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-1">{t('scamCheck.riskAssessment')}</h3>
             <Badge variant={config.variant} className="text-sm px-3 py-1">
               {config.label}
             </Badge>
@@ -42,7 +44,7 @@ const ScamAnalysis = ({
 
         {analyzedText && (
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Analyzed Text</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">{t('scamCheck.analyzedText')}</h4>
             <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-700 max-h-32 overflow-y-auto">
               {analyzedText}
             </div>
@@ -54,7 +56,7 @@ const ScamAnalysis = ({
         <Card>
           <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-amber-600" />
-            Risk Indicators Detected
+            {t('scamCheck.riskIndicators')}
           </h4>
           <div className="space-y-3">
             {indicators.map((indicator, i) => (
@@ -62,7 +64,6 @@ const ScamAnalysis = ({
                 key={i}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
                 className="flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200"
               >
                 <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -80,7 +81,7 @@ const ScamAnalysis = ({
         <Card>
           <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-green-600" />
-            Safety Advice
+            {t('scamCheck.safetyAdvice')}
           </h4>
           <ul className="space-y-2">
             {advice.map((item, i) => (
@@ -93,14 +94,14 @@ const ScamAnalysis = ({
         </Card>
       )}
 
-      <Alert variant={config.variant} title="Stay Safe">
-        Never share OTPs, passwords, or bank details with anyone. Government officials will never ask for these via phone or message.
+      <Alert variant={config.variant} title={t('scamCheck.staySafe')}>
+        {t('scamCheck.staySafeBody')}
       </Alert>
 
       {onCheckAnother && (
         <div className="flex justify-center">
           <Button onClick={onCheckAnother} icon={Shield}>
-            Check Another Message
+            {t('scamCheck.checkAnother')}
           </Button>
         </div>
       )}

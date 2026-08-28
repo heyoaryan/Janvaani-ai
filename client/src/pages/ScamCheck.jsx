@@ -1,105 +1,92 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, AlertTriangle, CheckCircle, ExternalLink } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import ScamAnalysis from '@/components/features/ScamAnalysis';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Alert from '@/components/ui/Alert';
 import Badge from '@/components/ui/Badge';
-
-const scamExamples = [
-  { type: 'SMS', text: 'Dear Customer, Your Aadhaar is being deactivated. Click here to verify: bit.ly/fake-link' },
-  { type: 'Call', text: 'This is calling from Bank of India. Your account will be blocked. Share your OTP to prevent this.' },
-  { type: 'WhatsApp', text: 'Congratulations! You have won ₹5 lakhs from PM Scheme. Share your bank details to claim.' },
-];
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const ScamCheck = () => {
+  const { t } = useLanguage();
   const [inputText, setInputText] = useState('');
   const [url, setUrl] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const scamExamples = [
+    { typeKey: 'sms', text: 'Dear Customer, Your Aadhaar is being deactivated. Click here to verify: bit.ly/fake-link' },
+    { typeKey: 'call', text: 'This is calling from Bank of India. Your account will be blocked. Share your OTP to prevent this.' },
+    { typeKey: 'whatsapp', text: 'Congratulations! You have won ₹5 lakhs from PM Scheme. Share your bank details to claim.' },
+  ];
 
   const analyzeText = () => {
-    if (!inputText.trim()) return;
-    setIsAnalyzing(true);
-    setTimeout(() => {
-      const lowerText = inputText.toLowerCase();
-      let riskLevel = 'low';
-      const indicators = [];
-      const advice = [
-        'Never share OTP, PIN, or password with anyone',
-        'Always verify messages from official sources',
-        'Check the sender ID or phone number carefully',
-        'Do not click on suspicious links',
-      ];
+    if (!inputText.trim() && !url.trim()) return;
+    const lowerText = `${inputText} ${url}`.toLowerCase();
+    let riskLevel = 'low';
+    const indicators = [];
+    const advice = [
+      t('scamCheck.neverShare'),
+      t('scamCheck.verifyOfficial'),
+      t('scamCheck.suspiciousUrls'),
+    ];
 
-      if (lowerText.includes('otp') || lowerText.includes('pin') || lowerText.includes('password')) {
-        indicators.push({ title: 'Request for Sensitive Information', description: 'The message asks for OTP, PIN, or password which legitimate organizations never do.' });
-        riskLevel = 'high';
-      }
-      if (lowerText.includes('click') || lowerText.includes('link') || lowerText.includes('bit.ly')) {
-        indicators.push({ title: 'Suspicious Link', description: 'Shortened or suspicious links are commonly used in phishing attempts.' });
-        if (riskLevel !== 'high') riskLevel = 'medium';
-      }
-      if (lowerText.includes('account') && (lowerText.includes('block') || lowerText.includes('deactivate'))) {
-        indicators.push({ title: 'Threat of Account Blocking', description: 'Scammers often create urgency by threatening account closure.' });
-        if (riskLevel !== 'high') riskLevel = 'medium';
-      }
-      if (lowerText.includes('winner') || lowerText.includes('won') || lowerText.includes('prize')) {
-        indicators.push({ title: 'Fake Prize or Lottery', description: 'Unsolicited prize notifications are almost always scams.' });
-        riskLevel = 'high';
-      }
-      if (lowerText.includes('bank details') || lowerText.includes('account number')) {
-        indicators.push({ title: 'Request for Bank Details', description: 'Legitimate organizations will not ask for bank details via SMS or call.' });
-        riskLevel = 'high';
-      }
-      if (lowerText.includes('aadhaar')) {
-        indicators.push({ title: 'Aadhaar-related Scam', description: 'Be cautious of messages claiming Aadhaar issues. Verify through official UIDAI channels.' });
-        if (riskLevel !== 'high') riskLevel = 'medium';
-      }
+    if (/otp|pin|password|ओटीपी|पिन|ओटीपी/.test(lowerText)) {
+      indicators.push({ title: t('scamCheck.high'), description: t('scamCheck.neverShare') });
+      riskLevel = 'high';
+    }
+    if (/bit\.ly|tinyurl|click here|लिंक/.test(lowerText) || (url && !/\.gov\.in|\.nic\.in/.test(url.toLowerCase()))) {
+      indicators.push({ title: t('scamCheck.suspiciousUrls'), description: t('scamCheck.suspiciousUrls') });
+      if (riskLevel !== 'high') riskLevel = 'medium';
+    }
+    if (/won|winner|prize|लख|इनाम|जीत/.test(lowerText)) {
+      riskLevel = 'high';
+      indicators.push({ title: t('scamCheck.high'), description: t('scamCheck.neverShare') });
+    }
+    if (/bank details|account number|aadhaar|आधार|खाता/.test(lowerText)) {
+      riskLevel = 'high';
+    }
 
-      setAnalysisResult({
-        riskLevel,
-        indicators,
-        advice,
-        analyzedText: inputText,
-      });
-      setIsAnalyzing(false);
-    }, 1500);
+    setAnalysisResult({
+      riskLevel,
+      indicators: indicators.length ? indicators : [{ title: t('scamCheck.safe'), description: t('scamCheck.verifyOfficial') }],
+      advice,
+      analyzedText: inputText || url,
+    });
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 py-4">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Scam Check</h1>
-        <p className="text-gray-600">Analyze suspicious messages, calls, and URLs for potential scams</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{t('scamCheck.title')}</h1>
+        <p className="text-sm sm:text-base text-gray-600">{t('scamCheck.subtitle')}</p>
       </div>
 
       <Card>
-        <h3 className="font-semibold text-gray-900 mb-4">Analyze Suspicious Content</h3>
+        <h3 className="font-semibold text-gray-900 mb-4">{t('scamCheck.analyzeTitle')}</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Paste suspicious message or text</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('scamCheck.pasteLabel')}</label>
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Paste the suspicious message here..."
+              placeholder={t('scamCheck.pasteMessage')}
               rows={4}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Check suspicious URL (optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('scamCheck.urlLabel')}</label>
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://example.com"
+              placeholder="https://"
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
-          <Button onClick={analyzeText} loading={isAnalyzing} icon={Shield} className="w-full sm:w-auto">
-            Analyze for Scam
+          <Button onClick={analyzeText} icon={Shield} className="w-full sm:w-auto">
+            {t('scamCheck.analyzeButton')}
           </Button>
         </div>
       </Card>
@@ -119,24 +106,19 @@ const ScamCheck = () => {
       )}
 
       <Card>
-        <h3 className="font-semibold text-gray-900 mb-4">Example Scam Messages</h3>
+        <h3 className="font-semibold text-gray-900 mb-4">{t('scamCheck.examples')}</h3>
         <div className="space-y-3">
           {scamExamples.map((example, i) => (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
               className="p-4 rounded-xl bg-gray-50 border border-gray-200"
             >
               <div className="flex items-center justify-between mb-2">
-                <Badge variant="error" className="text-xs">{example.type}</Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setInputText(example.text)}
-                >
-                  Try This
+                <Badge variant="error" className="text-xs">{t(`scamCheck.${example.typeKey}`)}</Badge>
+                <Button variant="ghost" size="sm" onClick={() => setInputText(example.text)}>
+                  {t('scamCheck.tryThis')}
                 </Button>
               </div>
               <p className="text-sm text-gray-700">{example.text}</p>
@@ -145,8 +127,8 @@ const ScamCheck = () => {
         </div>
       </Card>
 
-      <Alert variant="info" title="Stay Protected">
-        Always verify suspicious messages through official government portals. Never share sensitive information via SMS, email, or phone calls from unknown sources.
+      <Alert variant="info" title={t('scamCheck.stayProtected')}>
+        {t('scamCheck.stayProtectedBody')}
       </Alert>
     </div>
   );

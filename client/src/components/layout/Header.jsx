@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Globe, ChevronDown } from 'lucide-react';
-import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
-import Logo from '@/components/brand/Logo';
+import { Menu, Globe, ChevronDown, Check } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const Header = ({ onMenuToggle }) => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [language, setLanguage] = useState('en');
+  const { language, setLanguage, t, currentLanguage, languages } = useLanguage();
   const [showLangMenu, setShowLangMenu] = useState(false);
   const location = useLocation();
 
@@ -18,90 +16,140 @@ const Header = ({ onMenuToggle }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close language menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (showLangMenu && !e.target.closest('.language-menu-container')) {
+        setShowLangMenu(false);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showLangMenu]);
+
   const navLinks = [
-    { path: '/dashboard', label: 'Dashboard', labelHi: 'डैशबोर्ड' },
-    { path: '/schemes', label: 'Schemes', labelHi: 'योजनाएं' },
-    { path: '/eligibility', label: 'Eligibility', labelHi: 'पात्रता' },
-    { path: '/documents', label: 'Documents', labelHi: 'दस्तावेज' },
+    { path: '/dashboard', key: 'nav.dashboard' },
+    { path: '/for-you', key: 'nav.forYou' },
+    { path: '/schemes', key: 'nav.schemes' },
+    { path: '/compare', key: 'nav.compare' },
   ];
 
   return (
-    <header
-      className={`sticky top-0 z-40 transition-all duration-300 ${
-        isScrolled ? 'bg-white/80 backdrop-blur-md shadow-sm border-b border-gray-100' : 'bg-white border-b border-gray-100'
-      }`}
-    >
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onMenuToggle}
-              className="lg:hidden p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
-              aria-label="Toggle menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <Link to="/dashboard" className="hidden lg:flex items-center gap-2.5">
-              <Logo size={36} showText={false} />
-              <div className="leading-tight">
-                <h1 className="font-bold text-lg text-gray-900">JanVaani AI</h1>
-                <p className="text-xs text-gray-500 hidden sm:block">Government Services, In Your Voice</p>
+    <header className="sticky top-0 z-40 bg-transparent">
+      {/* Centered container with margin from edges */}
+      <div className="mx-4 lg:mx-8 my-4">
+        <motion.div
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className={`rounded-2xl transition-all duration-300 ${
+            isScrolled 
+              ? 'bg-white/95 backdrop-blur-lg shadow-lg border border-gray-200' 
+              : 'bg-white border border-gray-200 shadow-md'
+          }`}
+        >
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between">
+              {/* Left: Menu button (mobile) */}
+              <div className="lg:hidden">
+                <button
+                  onClick={onMenuToggle}
+                  className="p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  aria-label="Toggle menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
               </div>
-            </Link>
-          </div>
 
-          <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  location.pathname === link.path
-                    ? 'text-primary-600 bg-primary-50'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                {language === 'en' ? link.label : link.labelHi}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <button
-                onClick={() => setShowLangMenu(!showLangMenu)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                <Globe className="w-4 h-4" />
-                <span className="hidden sm:inline">{language === 'en' ? 'English' : 'हिंदी'}</span>
-                <ChevronDown className="w-3 h-3" />
-              </button>
-              <AnimatePresence>
-                {showLangMenu && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 5 }}
-                    className="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50"
+              {/* Center: Navigation Links */}
+              <nav className="flex items-center gap-2 mx-auto">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                      location.pathname === link.path
+                        ? 'text-white bg-primary-600 shadow-md'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
                   >
-                    <button
-                      onClick={() => { setLanguage('en'); setShowLangMenu(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm ${language === 'en' ? 'text-primary-600 bg-primary-50' : 'text-gray-700 hover:bg-gray-50'}`}
+                    {t(link.key)}
+                  </Link>
+                ))}
+              </nav>
+
+              {/* Right: Language Picker */}
+              <div className="relative language-menu-container">
+                <motion.button
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    showLangMenu 
+                      ? 'text-primary-700 bg-primary-50 ring-2 ring-primary-200' 
+                      : 'text-gray-700 bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  <Globe className="w-5 h-5" />
+                  <span className="hidden sm:inline">{currentLanguage.name}</span>
+                  <span className="sm:hidden text-lg">{currentLanguage.flag}</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform ${showLangMenu ? 'rotate-180' : ''}`} />
+                </motion.button>
+
+                <AnimatePresence>
+                  {showLangMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-72 max-h-96 overflow-y-auto bg-white rounded-2xl shadow-2xl border border-gray-200 py-2 z-50"
                     >
-                      English
-                    </button>
-                    <button
-                      onClick={() => { setLanguage('hi'); setShowLangMenu(false); }}
-                      className={`w-full text-left px-4 py-2 text-sm ${language === 'hi' ? 'text-primary-600 bg-primary-50' : 'text-gray-700 hover:bg-gray-50'}`}
-                    >
-                      हिंदी
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                          {t('header.selectLanguage')}
+                        </p>
+                      </div>
+                      <div className="py-1">
+                        {languages.map((lang) => (
+                          <motion.button
+                            key={lang.code}
+                            onClick={() => {
+                              setLanguage(lang.code);
+                              setShowLangMenu(false);
+                            }}
+                            whileHover={{ backgroundColor: 'rgba(99, 102, 241, 0.05)' }}
+                            className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors ${
+                              language === lang.code 
+                                ? 'text-primary-700 bg-primary-50 font-semibold' 
+                                : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-2xl">{lang.flag}</span>
+                              <div className="text-left">
+                                <p className="font-medium">{lang.name}</p>
+                                <p className="text-xs text-gray-500">{lang.englishName}</p>
+                              </div>
+                            </div>
+                            {language === lang.code && (
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="w-5 h-5 rounded-full bg-primary-600 flex items-center justify-center"
+                              >
+                                <Check className="w-3 h-3 text-white" />
+                              </motion.div>
+                            )}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </header>
   );

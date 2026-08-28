@@ -37,6 +37,8 @@ export function AuthProvider({ children }) {
   const completeOnboarding = (profile) => {
     setUser(profile);
     setOnboardingComplete(true);
+    localStorage.setItem('janvaani_onboarding', 'complete');
+    localStorage.setItem('janvaani_profile', JSON.stringify(profile));
   };
 
   const resetUser = () => {

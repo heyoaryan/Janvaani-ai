@@ -20,10 +20,11 @@ export const schemesApi = {
 export const voiceApi = {
   transcribe: (audio, languageCode = 'hi-IN') => {
     const form = new FormData();
-    form.append('file', audio);
+    const ext = (audio.type || '').includes('mp4') ? 'm4a' : 'webm';
+    form.append('file', audio, `voice.${ext}`);
     form.append('language_code', languageCode);
     return api.post('/voice/transcribe', form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
     }).then(r => r.data);
   },
   synthesize: (text, language = 'hi-IN') => api.post('/voice/synthesize', { text, language }).then(r => r.data),

@@ -1,204 +1,259 @@
 # JanVaani AI
 
-**"Government Services, In Your Voice."**
+> **"Government Services, In Your Voice."**
 
-A voice-first AI citizen co-pilot for government services. Built for CCU Hackathon.
+JanVaani AI is a voice-first citizen co-pilot that helps people discover, check eligibility for, and apply to Indian government schemes — in their own language.
 
-## 🚀 Quick Start
+Built as a hackathon prototype for CCU Hackathon, it combines a multilingual voice interface, an AI scheme finder, a rule-based eligibility engine, and a smart document checklist into a single, accessible web app.
 
-```bash
-# Install all dependencies
-npm run install:all
-
-# Start both backend and frontend
-npm run dev
-```
-
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:5001
-
-## 🏗️ Project Structure
-
-```
-janvaani-ai/
-├── client/                 # React + Vite + Tailwind frontend
-│   ├── src/
-│   │   ├── components/     # Reusable UI components
-│   │   ├── pages/          # Page components
-│   │   ├── contexts/       # React contexts (Auth, Voice)
-│   │   ├── hooks/          # Custom hooks
-│   │   ├── services/       # API service layer
-│   │   ├── data/           # Mock data and schemes
-│   │   └── utils/          # Utility functions
-│   └── package.json
-├── server/                 # Node.js + Express backend
-│   ├── routes/             # API route handlers
-│   ├── services/           # Business logic services
-│   ├── data/               # Mock data and knowledge base
-│   ├── models/             # Data models
-│   └── package.json
-└── package.json            # Root package with scripts
-```
+---
 
 ## ✨ Features
 
-### P0 - Core Features
-- 🎙️ **Regional Language Voice AI** - Speak in Hindi/Hinglish to interact
-- 🔎 **AI Scheme Finder** - Discover government schemes by describing your needs
-- 🎯 **Eligibility Checker** - Deterministic rule-based eligibility engine
-- 📄 **Smart Document Checker** - Upload and analyze documents
-- ❓ **What Am I Missing?** - Visual missing document tracker
-- 🤖 **AI Application Co-Pilot** - Step-by-step guided application workflow
+| Feature | Description |
+|---|---|
+| 🎙️ **Multilingual Voice AI** | Speak in Hindi, Hinglish, or English. STT runs locally via Whisper; TTS via gTTS. |
+| 🔎 **AI Scheme Finder** | Describe your situation in plain language; the AI surfaces relevant government schemes. |
+| 🎯 **Eligibility Checker** | Deterministic, rule-based engine that explains exactly why you qualify or don't. |
+| 📄 **Document Checklist** | Know which documents you need for a scheme and track what you already have. |
+| ❓ **What Am I Missing?** | Visual tracker of missing documents across all your saved schemes. |
+| 👨‍👩‍👧 **Family Benefits Finder** | Discover schemes for every member of your household, not just yourself. |
+| ❤️ **Life Events** | Get personalised scheme recommendations based on life milestones (marriage, new baby, job loss, etc.). |
+| ⚖️ **Compare Schemes** | Side-by-side comparison of multiple schemes. |
+| 🛡️ **Scam & Fraud Check** | Paste a suspicious message or URL and get an AI-powered risk assessment. |
+| 📍 **Nearby Help Centers** | Find the closest government offices and service centers. |
+| 📊 **Analytics Dashboard** | Track usage and impact at a glance. |
 
-### P1 - High Value
-- 👨‍👩‍👧 **Family Benefits Finder** - Discover schemes for entire household
-- ❤️ **Life Events** - Get recommendations based on life milestones
-- 🛡️ **Scam & Fraud Help** - AI-powered scam risk assessment
+---
 
-### P2
-- 📍 **Nearby Government Help** - Find offices and help centers
-- 📊 **Analytics Dashboard** - Track impact and usage
+## 🏗️ Architecture
+
+```
+janvaani-ai/
+├── client/          # React 18 + Vite + Tailwind CSS (frontend)
+│   └── src/
+│       ├── pages/       # Dashboard, SchemeFinder, EligibilityChecker, …
+│       ├── components/  # UI, layout, voice, feature components
+│       ├── contexts/    # Auth, Language, Voice contexts
+│       ├── hooks/       # Custom React hooks
+│       ├── services/    # Axios API layer
+│       └── data/        # Local scheme / state data
+│
+└── ai-service/      # Python FastAPI backend
+    ├── main.py          # App entry point, CORS, router registration
+    ├── routes/          # One file per domain (schemes, voice, docs, …)
+    ├── services/        # Business logic (AI, eligibility, documents, …)
+    └── data/            # Scheme knowledge base (Hindi + English)
+```
+
+---
 
 ## 🛠️ Tech Stack
 
-**Frontend:**
+**Frontend**
 - React 18 + Vite
 - Tailwind CSS
 - Framer Motion
+- React Router DOM v6
 - Lucide React
-- React Router DOM
 
-**Backend:**
-- Node.js + Express
-- Modular service architecture
-- Mock AI services with integration points for real APIs
+**Backend**
+- Python 3.11+ / FastAPI + Uvicorn
+- faster-whisper (local STT — no API key needed)
+- gTTS (free TTS — no API key needed)
+- Groq API for LLM (free tier, ~14 k req/day)
+- Optional web search via SearchAPI / SerpAPI / Bing
 
-**AI Architecture:**
-- Mock LLM for intent detection and entity extraction
-- Deterministic rule-based eligibility engine
-- Mock speech-to-text and text-to-speech
-- Mock OCR/document analysis
+---
 
-## 📋 Demo Flow
+## 🚀 Local Development
 
-1. **User opens JanVaani AI** → Dashboard with voice button
-2. **User speaks**: "Main college student hoon, mere family ki income kam hai. Mujhe education ke liye government se kya help mil sakti hai?"
-3. **System understands** → Extracts intent, entities, user profile
-4. **AI Scheme Finder** → Shows relevant schemes (PM Scholarship, PMEGP, etc.)
-5. **User selects scheme** → Detailed view with eligibility info
-6. **Eligibility Checker** → Shows 92% match with criteria breakdown
-7. **Document Checker** → Upload documents, basic analysis
-8. **"What Am I Missing?"** → Visual tracker showing missing docs
-9. **Application Co-Pilot** → Step-by-step guided workflow
-10. **Family Benefits** → Discover schemes for all family members
+### Prerequisites
 
-## 🎯 Key Differentiators
+- Node.js 18+
+- Python 3.11+
+- pip
 
-1. **Voice-first interaction** in regional languages
-2. **Deterministic eligibility engine** - explainable and reliable
-3. **"What Am I Missing?"** - Unique document intelligence
-4. **Family Benefits Finder** - Household-level analysis
-5. **AI Application Co-Pilot** - Guided, not automated
-6. **Scam Protection** - Safety-first design
+### 1. Clone and install
 
-## ⚠️ Important Notes
-
-- This is a **hackathon prototype** with mock data and services
-- Not an official government portal
-- All recommendations are AI-based preliminary assessments
-- Real API integrations are clearly marked with TODO comments
-- Demo data is labeled and designed for easy replacement with verified sources
-
-## 📱 Running the Application
-
-### Development Mode
 ```bash
-# Terminal 1 - Backend
-cd server
-node server.js
+git clone https://github.com/your-username/janvaani-ai.git
+cd janvaani-ai
 
-# Terminal 2 - Frontend
-cd client
+# Install everything in one shot
+npm run install:all
+```
+
+### 2. Configure environment variables
+
+```bash
+# Backend
+cp ai-service/.env.example ai-service/.env
+
+# Frontend (optional for local dev — Vite proxies /api → port 8000)
+cp client/.env.example client/.env
+```
+
+Open `ai-service/.env` and fill in at minimum:
+
+```env
+GROQ_API_KEY=your_groq_api_key_here   # https://console.groq.com — free, no card needed
+WHISPER_MODEL=base                     # tiny | base | small | medium
+```
+
+### 3. Start both servers
+
+```bash
 npm run dev
 ```
 
-### Production Build
-```bash
-cd client
-npm run build
-```
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| Backend API | http://localhost:8000 |
+| API Docs (Swagger) | http://localhost:8000/docs |
 
-## ☁️ GitHub and Vercel Deployment
-
-The repository is ready to connect to GitHub and deploy the React frontend on Vercel.
-
-### Push to GitHub
+Or run them separately:
 
 ```bash
-git add .
-git commit -m "Prepare JanVaani AI for deployment"
-git push -u origin main
+# Terminal 1 — backend
+npm run dev:api
+
+# Terminal 2 — frontend
+npm run dev:client
 ```
 
-### Deploy the backend on Render
+---
 
-1. In Render, choose **New → Blueprint** and select this repository. The included `render.yaml` creates the Express web service from `server/`.
-2. Add `SARVAM_API_KEY` for real voice/AI responses, or leave it empty to use the built-in mock responses.
-3. Add `MONGO_URI` only if persistent MongoDB data is needed. The demo works without it.
-4. Copy the deployed Render URL and check `https://your-api.example.com/api/health`.
+## ☁️ Deployment
 
-### Deploy the frontend on Vercel
+### Backend → Render
 
-1. Import this GitHub repository into Vercel.
-2. Keep the repository root as the project root. The included `vercel.json` builds `client` and serves `client/dist`.
-3. Add `VITE_API_URL` in Vercel Environment Variables, pointing to the deployed Render backend URL including `/api`, for example `https://janvaani-ai-api.onrender.com/api`.
-4. Deploy. Vercel will rewrite React Router routes to `index.html`.
+1. Go to [render.com](https://render.com) → **New → Web Service** → connect your repo.
+2. Set the following:
+   - **Root Directory**: `ai-service`
+   - **Runtime**: Python 3
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+3. Add environment variables:
 
-The frontend and backend are separate deployments: Vercel serves `client/`, while Render runs the Express API in `server/`.
+   | Key | Required | Notes |
+   |---|---|---|
+   | `GROQ_API_KEY` | Recommended | LLM responses; falls back to rule-based if missing |
+   | `WHISPER_MODEL` | No | Default: `base` |
+   | `SEARCHAPI_KEY` | No | Web search fallback |
+   | `SERPAPI_KEY` | No | Alternative to SearchAPI |
+   | `BING_SEARCH_API_KEY` | No | Alternative to SearchAPI |
 
-## 🔌 API Endpoints
+4. Deploy and copy the service URL (e.g. `https://janvaani-ai-api.onrender.com`).
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/health` | GET | Health check |
-| `/api/schemes` | GET | List all schemes |
-| `/api/schemes/search` | POST | AI-powered scheme search |
-| `/api/schemes/:id` | GET | Get scheme details |
-| `/api/voice/transcribe` | POST | Speech to text (mock) |
-| `/api/voice/synthesize` | POST | Text to speech (mock) |
-| `/api/voice/process` | POST | Process voice input |
-| `/api/documents/upload` | POST | Upload document |
-| `/api/documents/check` | POST | Check document against scheme |
-| `/api/documents/missing` | POST | Get missing documents |
-| `/api/eligibility/check` | POST | Check eligibility |
-| `/api/family/create-profile` | POST | Create family profile |
-| `/api/family/analyze` | GET | Analyze family benefits |
-| `/api/scam/analyze` | POST | Analyze text for scams |
-| `/api/locations/nearby` | GET | Get nearby offices |
-| `/api/analytics/dashboard` | GET | Get analytics data |
+### Frontend → Vercel
 
-## 🎨 Design System
+1. Go to [vercel.com](https://vercel.com) → **New Project** → import your repo.
+2. Vercel will auto-detect the config from `vercel.json` (root already set to `client/dist`).
+3. Add one environment variable:
 
-- **Primary**: Indigo (#4F46E5)
-- **Background**: Gray-50 (#F8FAFC)
-- **Cards**: White with rounded-2xl
-- **Typography**: Inter font family
-- **Icons**: Lucide React
-- **Animations**: Framer Motion
+   | Key | Value |
+   |---|---|
+   | `VITE_API_URL` | `https://janvaani-ai-api.onrender.com` |
 
-## 📊 Hackathon Evaluation Alignment
+4. Deploy. React Router SPA rewrites are handled automatically by `vercel.json`.
 
-| Criteria | Score | How |
-|----------|-------|-----|
-| Innovation | 25% | Voice-first regional language AI, family benefits, document intelligence |
-| Impact | 25% | Simplifies access to government services for non-English speakers |
-| Feasibility | 20% | Clear integration points, modular architecture, mock services |
-| Prototype Quality | 20% | Polished UI, working demo, all P0 features functional |
-| Presentation | 10% | Clear demo flow, "Citizen Journey" visualization |
+> **Note:** Render's free tier spins down after 15 min of inactivity. The first request after sleep may be slow. Use a paid plan or keep-alive ping for production use.
 
-## 👥 Team
+---
 
-Built with ❤️ for CCU Hackathon
+## 🔌 API Reference
+
+Base path: `/api`
+
+### Schemes
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/schemes` | List / filter all schemes |
+| `GET` | `/schemes/:id` | Scheme detail |
+| `POST` | `/schemes/search` | AI-powered natural language search |
+
+### Eligibility
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/eligibility/check` | Full eligibility check with breakdown |
+| `POST` | `/eligibility/quick-check` | Fast binary check |
+
+### Documents
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/documents/upload` | Upload document (mock OCR) |
+| `POST` | `/documents/check` | Document checklist for a scheme |
+| `POST` | `/documents/missing` | List missing documents |
+
+### Voice
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/voice/languages` | Supported languages |
+| `POST` | `/voice/transcribe` | Speech → Text (local Whisper) |
+| `POST` | `/voice/synthesize` | Text → Speech (gTTS) |
+| `POST` | `/voice/process` | Full STT → LLM → TTS pipeline |
+| `POST` | `/voice/chat` | Text-only multilingual chat |
+
+### Family
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/family/create-profile` | Create family profile |
+| `POST` | `/family/analyze` | Get scheme recommendations for whole family |
+| `GET` | `/family/profiles` | List saved family profiles |
+
+### Onboarding
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/onboarding/complete` | Save user profile after onboarding |
+| `GET` | `/onboarding/profile/:id` | Fetch saved profile |
+
+### Other
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/scam/analyze` | Analyze text for scam signals |
+| `POST` | `/scam/check-url` | URL risk assessment |
+| `GET` | `/locations/nearby` | Nearby government offices |
+| `POST` | `/locations/search` | Search offices by query |
+| `GET` | `/analytics/dashboard` | Usage & impact dashboard |
+| `GET` | `/health` | Health check |
+
+Full interactive docs available at `/docs` when the server is running.
+
+---
+
+## 🔑 Environment Variables
+
+### `ai-service/.env`
+
+| Variable | Default | Description |
+|---|---|---|
+| `AI_SERVICE_PORT` | `8000` | Port for the FastAPI server |
+| `GROQ_API_KEY` | — | Groq LLM API key (free at console.groq.com) |
+| `WHISPER_MODEL` | `base` | Whisper model size: `tiny` / `base` / `small` / `medium` |
+| `SEARCHAPI_KEY` | — | SearchAPI.io key (optional web search) |
+| `SERPAPI_KEY` | — | SerpAPI key (optional, alternative) |
+| `BING_SEARCH_API_KEY` | — | Bing Search API key (optional, alternative) |
+| `SEARCH_TIMEOUT_MS` | `6000` | Web search timeout in milliseconds |
+
+### `client/.env`
+
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_URL` | `/api` | Backend base URL. Leave as `/api` for local dev (Vite proxy). Set to full URL in production. |
+
+---
+
+## ⚠️ Disclaimer
+
+This is a **hackathon prototype**. All scheme data, eligibility rules, and AI responses are for demonstration purposes only.
+
+- Not an official government portal.
+- AI assessments are preliminary — always verify with official sources.
+- Mock data is clearly labeled and designed for easy replacement with live, verified data.
+
+---
 
 ## 📄 License
 

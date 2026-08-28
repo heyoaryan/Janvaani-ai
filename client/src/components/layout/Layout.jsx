@@ -11,17 +11,25 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header onMenuToggle={() => setSidebarOpen(prev => !prev)} />
-      <div className="flex flex-1">
-        <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <main className="flex-1 min-w-0 overflow-y-auto">
-          <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
+      {/* Sidebar - Fixed left, full height */}
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      
+      {/* Main content area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header - Centered, not touching edges */}
+        <Header onMenuToggle={() => setSidebarOpen(prev => !prev)} />
+        
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="w-full h-full">
             <Outlet />
           </div>
         </main>
+        
+        {/* Footer */}
+        <Footer />
       </div>
-      <Footer />
 
       {!onboardingComplete && (
         <Onboarding onComplete={completeOnboarding} />

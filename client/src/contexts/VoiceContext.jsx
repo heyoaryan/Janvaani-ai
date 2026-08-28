@@ -1,19 +1,24 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { useVoiceRecognition, useTextToSpeech } from '@/hooks/useVoice';
 import { useAuth } from '@/contexts/AuthContext';
-import { API_BASE } from '@/services/api';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { voiceApi } from '@/services/api';
 
 const VoiceContext = createContext(null);
 
 export function VoiceProvider({ children }) {
   const { user } = useAuth();
-  const [language, setLanguage] = useState('hi-IN');
+  const { language: appLanguage, setLanguage: setAppLanguage } = useLanguage();
   const [lastResponse, setLastResponse] = useState(null);
   const [error, setError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [gttsSpeaking, setGttsSpeaking] = useState(false);
+  const audioRef = useRef(null);
 
-  const { isListening, transcript, interim, error: sttError, start, stop, setIsListening } = useVoiceRecognition(language);
-  const { isSpeaking, speak: ttsSpeak, stop: ttsStop } = useTextToSpeech(language);
+  const language = appLanguage;
+
+  const { isListening, transcript, interim, audioBlob, error: sttError, silenceDetected, start, stop } = useVoiceRecognition(language);
+  const { isSpeaking: browserSpeaking, speak: ttsSpeak, stop: ttsStop } = useTextToSpeech(language);
 
   const startListening = useCallback(() => {
     setError(null);
@@ -21,53 +26,84 @@ export function VoiceProvider({ children }) {
     start();
   }, [start]);
 
-  const stopListening = useCallback(() => {
-    stop();
-  }, [stop]);
+  const stopListening = useCallback(() => stop(), [stop]);
 
-  const processVoice = useCallback(async (input) => {
-    const text = input || transcript || '';
-    if (!text.trim()) return null;
+  const processVoice = useCallback(async (input = '', recordedAudio = null) => {
+    let text = (input || '').trim();
 
     setIsProcessing(true);
     setError(null);
+    setLastResponse(null);
     try {
+      // Only transcribe when we have no text — Whisper is slow and can overwrite a good transcript.
+      if (!text && recordedAudio && recordedAudio.size > 0) {
+        try {
+          const transcription = await voiceApi.transcribe(recordedAudio, language);
+          if (transcription?.transcription?.trim()) {
+            text = transcription.transcription.trim();
+          }
+        } catch {
+          // Browser recognition remains the fallback transcript.
+        }
+      }
+
+      if (!text) text = (transcript || '').trim();
+      if (!text) return null;
+
       const sessionId = user.sessionId || `sess-${Date.now()}`;
-      const res = await fetch(`${API_BASE}/voice/process`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: text, sessionId, language, userProfile: user }),
-      });
-      const data = await res.json();
+      const userProfile = {
+        name: user.name || '',
+        occupation: user.occupation || '',
+        age: user.age || '',
+        gender: user.gender || '',
+        state: user.state || '',
+        income: user.income || user.annualIncome || '',
+      };
+      const data = await voiceApi.process(text, sessionId, language, userProfile);
+      if (!data?.success) {
+        throw new Error(data?.message || 'Voice processing failed');
+      }
       setLastResponse(data);
       return data;
     } catch (err) {
-      setError('Voice processing failed. Please try again.');
+      setError(err.message || 'Voice processing failed. Please try again.');
       return null;
     } finally {
       setIsProcessing(false);
     }
   }, [transcript, language, user]);
 
-  const speak = useCallback((text) => {
-    if (text) {
-      ttsSpeak(text);
-    }
-  }, [ttsSpeak]);
-
   const stopSpeaking = useCallback(() => {
     ttsStop();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+    setGttsSpeaking(false);
   }, [ttsStop]);
 
+  const speak = useCallback((text, responseLanguage) => {
+    if (!text) return;
+    stopSpeaking();
+    const short = text.length > 220 ? `${text.slice(0, 220).trim()}…` : text;
+    ttsSpeak(short, responseLanguage || language);
+  }, [language, stopSpeaking, ttsSpeak]);
+
   const clearError = useCallback(() => setError(null), []);
+
+  const setLanguage = useCallback((newLang) => {
+    setAppLanguage(newLang);
+  }, [setAppLanguage]);
 
   const currentError = error || sttError;
 
   return (
     <VoiceContext.Provider value={{
-      isListening, transcript, interimTranscript: interim, isProcessing,
-      lastResponse, language, error: currentError,
-      startListening, stopListening, processVoice, speak, stopSpeaking, setLanguage, clearError, isSpeaking,
+      isListening, transcript, interimTranscript: interim, audioBlob, silenceDetected,
+      isProcessing, lastResponse, language, error: currentError,
+      startListening, stopListening, processVoice, speak, stopSpeaking, setLanguage, clearError,
+      isSpeaking: gttsSpeaking || browserSpeaking,
     }}>
       {children}
     </VoiceContext.Provider>

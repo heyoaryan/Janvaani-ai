@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
 
-const VoiceResponse = ({ text, onEnd, className = '', autoSpeak = false }) => {
+const VoiceResponse = ({ text, onEnd, className = '', autoSpeak = false, language = 'hi-IN' }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -45,7 +45,7 @@ const VoiceResponse = ({ text, onEnd, className = '', autoSpeak = false }) => {
         setIsPlaying(false);
       } else {
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'hi-IN';
+        utterance.lang = language;
         utterance.rate = 0.9;
         utterance.onend = () => setIsPlaying(false);
         window.speechSynthesis.speak(utterance);

@@ -4,10 +4,13 @@ import LifeEventCard from '@/components/features/LifeEventCard';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { lifeEvents } from '@/data/schemes';
 import { schemes } from '@/data/schemes';
+import { localizeScheme } from '@/utils/schemeLocale';
 
 const LifeEvents = () => {
+  const { t, language } = useLanguage();
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('all');
 
@@ -26,19 +29,19 @@ const LifeEvents = () => {
     : [];
 
   const categories = [
-    { id: 'all', label: 'All Events' },
-    { id: 'education', label: 'Education' },
-    { id: 'employment', label: 'Employment' },
-    { id: 'healthcare', label: 'Healthcare' },
-    { id: 'housing', label: 'Housing' },
-    { id: 'agriculture', label: 'Agriculture' },
+    { id: 'all', label: t('schemeFinder.all') },
+    { id: 'education', label: t('categories.Education') },
+    { id: 'employment', label: t('categories.Employment') },
+    { id: 'healthcare', label: t('categories.Healthcare') },
+    { id: 'housing', label: t('categories.Housing') },
+    { id: 'agriculture', label: t('categories.Agriculture') },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Life Events</h1>
-        <p className="text-gray-600">Find schemes based on life milestones</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{t('lifeEvents.title')}</h1>
+        <p className="text-gray-600">{t('lifeEvents.subtitle')}</p>
       </div>
 
       <Card>
@@ -81,7 +84,7 @@ const LifeEvents = () => {
                 <p className="text-gray-600">{selectedEvent.description}</p>
               </div>
               <Button variant="outline" size="sm" onClick={() => setSelectedEvent(null)}>
-                Close
+                {t('close')}
               </Button>
             </div>
             <p className="text-sm text-gray-500 mb-4">
@@ -89,23 +92,21 @@ const LifeEvents = () => {
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {relatedSchemes.length > 0 ? (
-                relatedSchemes.map(scheme => (
+                relatedSchemes.map(scheme => {
+                  const loc = localizeScheme(scheme, language);
+                  return (
                   <Card key={scheme.id} className="!p-4">
                     <Badge variant="neutral" className="mb-2 capitalize">
                       {scheme.category.replace('-', ' ')}
                     </Badge>
-                    <h4 className="font-semibold text-gray-900 mb-1">{scheme.name}</h4>
-                    <p className="text-sm text-gray-600 line-clamp-2">{scheme.description}</p>
-                    <div className="mt-3">
-                      <Badge variant="success" className="text-xs">
-                        Available
-                      </Badge>
-                    </div>
+                    <h4 className="font-semibold text-gray-900 mb-1">{loc.displayName}</h4>
+                    <p className="text-sm text-gray-600 line-clamp-2">{loc.displayDescription}</p>
                   </Card>
-                ))
+                  );
+                })
               ) : (
                 <div className="col-span-full text-center py-8">
-                  <p className="text-gray-500">No specific schemes linked to this event yet</p>
+                  <p className="text-gray-500">{t('schemeFinder.noSchemesFound')}</p>
                 </div>
               )}
             </div>
