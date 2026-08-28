@@ -73,13 +73,16 @@ const Dashboard = () => {
     await new Promise((r) => setTimeout(r, 50));
     const text = `${transcriptRef.current || ''} ${interimRefDash.current || ''}`.trim();
     const audio = blob || audioBlobRef.current;
+
+    // Need at least some audio or text to proceed
     if (!text && !(audio && audio.size > 0)) {
       searchInFlightRef.current = false;
       return;
     }
     try {
       setHasSearched(true);
-      const local = text
+      // Quick local match on whatever text we have from browser STT
+      const local = text.length >= 2
         ? schemes.filter((s) => schemeMatchesQuery(s, text)).slice(0, 6)
         : [];
       const occ = applyQueryProfile(text, {});
@@ -87,8 +90,9 @@ const Dashboard = () => {
         speakFoundIntro(local.length, occ, text);
         return;
       }
-      const res = await processVoice(text, text ? null : audio);
-      applyQueryProfile(text, res?.entities);
+      // Pass both text AND audio — VoiceContext will use Whisper if browser STT text is weak
+      const res = await processVoice(text, audio);
+      applyQueryProfile(text || res?.transcription || '', res?.entities);
       const apiSchemes = res?.suggestedSchemes || [];
       if (apiSchemes.length) {
         speakFoundIntro(apiSchemes.length, inferOccupationFromQuery(text) || occ, text);
@@ -196,7 +200,7 @@ const Dashboard = () => {
   // ── HOME ────────────────────────────────────────────────────────
   if (mode === null) {
     return (
-      <div className="h-full flex flex-col items-center justify-center px-6 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20">
+      <div className="min-h-full flex flex-col items-center justify-center px-6 py-12 bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20">
         <motion.div
           initial={{ opacity: 0, y: -14 }}
           animate={{ opacity: 1, y: 0 }}

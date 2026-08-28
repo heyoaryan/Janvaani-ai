@@ -23,6 +23,22 @@ const EligibilityChecker = () => {
     if (fromQuery) setSelectedSchemeId(fromQuery);
   }, [searchParams]);
 
+  // Auto-prefill state from onboarding city if state not yet set
+  useEffect(() => {
+    if (!user.state && user.city) {
+      const mapped = normalizeState(user.city);
+      if (mapped && mapped !== 'all') {
+        updateUser({ state: mapped });
+      }
+    }
+    // Also derive age from dob if age not set
+    if (!user.age && user.dob) {
+      const age = Math.floor((Date.now() - new Date(user.dob)) / (365.25 * 24 * 3600 * 1000));
+      if (age > 0) updateUser({ age });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleCheck = () => {
     if (!selectedSchemeId) return;
     const scheme = findSchemeById(selectedSchemeId);
@@ -147,6 +163,7 @@ const EligibilityChecker = () => {
       {result && (
         <EligibilityResult
           score={result.score}
+          eligible={result.eligible}
           criteria={result.criteria}
           whyQualify={result.whyQualify}
           whyNotQualify={result.whyNotQualify}

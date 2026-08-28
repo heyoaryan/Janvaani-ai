@@ -7,13 +7,18 @@ import { useLanguage } from '@/contexts/LanguageContext';
 // ── Custom DOB Input ───────────────────────────────────────────────────────────
 // Supports typing DD/MM/YYYY or selecting via three dropdowns
 const DOBInput = ({ value, onChange }) => {
-  // value is always "YYYY-MM-DD" or ""
-  const parts = value ? value.split('-') : ['', '', ''];
-  const [year, month, day] = parts;
+  // Parse initial value "YYYY-MM-DD" into parts
+  const initParts = value ? value.split('-') : ['', '', ''];
 
-  // Text input state: what user sees while typing
-  const [text, setText] = useState(value ? `${day}/${month}/${year}` : '');
-  const [mode, setMode] = useState('dropdowns'); // 'type' | 'dropdowns'
+  // LOCAL state for each dropdown — prevents stale-closure wipe on re-render
+  const [selYear,  setSelYear]  = useState(initParts[0] || '');
+  const [selMonth, setSelMonth] = useState(initParts[1] || '');
+  const [selDay,   setSelDay]   = useState(initParts[2] || '');
+
+  const [text, setText] = useState(
+    initParts[2] ? `${initParts[2]}/${initParts[1]}/${initParts[0]}` : ''
+  );
+  const [mode, setMode] = useState('dropdowns');
   const inputRef = useRef(null);
 
   const currentYear = new Date().getFullYear();
@@ -26,14 +31,35 @@ const DOBInput = ({ value, onChange }) => {
     if (!m || !y) return 31;
     return new Date(Number(y), Number(m), 0).getDate();
   };
-  const days = Array.from({ length: daysInMonth(month, year) }, (_, i) => i + 1);
+  const days = Array.from({ length: daysInMonth(selMonth, selYear) }, (_, i) => i + 1);
 
+  // Emit ISO string only when all three parts are filled
   const emitISO = (d, m, y) => {
     if (d && m && y && String(y).length === 4) {
       onChange(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
     } else {
       onChange('');
     }
+  };
+
+  const handleDayChange = (e) => {
+    const d = e.target.value;
+    setSelDay(d);
+    emitISO(d, selMonth, selYear);
+  };
+  const handleMonthChange = (e) => {
+    const m = e.target.value;
+    setSelMonth(m);
+    // If day > days in new month, reset day
+    const maxD = daysInMonth(m, selYear);
+    const d = Number(selDay) > maxD ? '' : selDay;
+    if (d !== selDay) setSelDay(d);
+    emitISO(d, m, selYear);
+  };
+  const handleYearChange = (e) => {
+    const y = e.target.value;
+    setSelYear(y);
+    emitISO(selDay, selMonth, y);
   };
 
   // Handle typed input: auto-insert slashes, validate on complete
@@ -47,7 +73,8 @@ const DOBInput = ({ value, onChange }) => {
     if (raw.length === 8) {
       const d = raw.slice(0,2), m = raw.slice(2,4), y = raw.slice(4,8);
       if (Number(d) >= 1 && Number(d) <= 31 && Number(m) >= 1 && Number(m) <= 12) {
-        emitISO(d, m, y);
+        setSelDay(d); setSelMonth(m); setSelYear(y);
+        onChange(`${y}-${m}-${d}`);
       } else {
         onChange('');
       }
@@ -86,8 +113,8 @@ const DOBInput = ({ value, onChange }) => {
       <div className="grid grid-cols-3 gap-2">
         {/* Day */}
         <select
-          value={day || ''}
-          onChange={(e) => emitISO(e.target.value, month, year)}
+          value={selDay}
+          onChange={handleDayChange}
           className="px-2 py-3.5 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-center font-semibold text-gray-800 text-sm transition-all cursor-pointer"
         >
           <option value="">Day</option>
@@ -98,8 +125,8 @@ const DOBInput = ({ value, onChange }) => {
 
         {/* Month */}
         <select
-          value={month || ''}
-          onChange={(e) => emitISO(day, e.target.value, year)}
+          value={selMonth}
+          onChange={handleMonthChange}
           className="px-2 py-3.5 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-center font-semibold text-gray-800 text-sm transition-all cursor-pointer"
         >
           <option value="">Month</option>
@@ -110,8 +137,8 @@ const DOBInput = ({ value, onChange }) => {
 
         {/* Year */}
         <select
-          value={year || ''}
-          onChange={(e) => emitISO(day, month, e.target.value)}
+          value={selYear}
+          onChange={handleYearChange}
           className="px-2 py-3.5 rounded-xl border-2 border-gray-200 focus:border-indigo-500 outline-none text-center font-semibold text-gray-800 text-sm transition-all cursor-pointer"
         >
           <option value="">Year</option>
@@ -120,6 +147,13 @@ const DOBInput = ({ value, onChange }) => {
           ))}
         </select>
       </div>
+
+      {/* Show selected date preview */}
+      {selDay && selMonth && selYear && (
+        <p className="text-center text-sm font-semibold text-indigo-600">
+          {selDay}/{selMonth}/{selYear}
+        </p>
+      )}
 
       <button
         type="button"

@@ -35,15 +35,22 @@ export function VoiceProvider({ children }) {
     setError(null);
     setLastResponse(null);
     try {
-      // Only transcribe when we have no text — Whisper is slow and can overwrite a good transcript.
-      if (!text && recordedAudio && recordedAudio.size > 0) {
+      // Use Whisper when:
+      //   a) no browser STT text at all, OR
+      //   b) audio blob exists and browser gave very short text (< 4 chars — likely noise)
+      //      This handles production where Web Speech API is unavailable or unreliable.
+      const audioAvailable = recordedAudio && recordedAudio.size > 0;
+      const browserTextWeak = text.length < 4;
+
+      if (audioAvailable && (!text || browserTextWeak)) {
         try {
           const transcription = await voiceApi.transcribe(recordedAudio, language);
-          if (transcription?.transcription?.trim()) {
-            text = transcription.transcription.trim();
+          const whisperText = transcription?.transcription?.trim();
+          if (whisperText && whisperText.length > text.length) {
+            text = whisperText;
           }
         } catch {
-          // Browser recognition remains the fallback transcript.
+          // Browser STT transcript stays as fallback
         }
       }
 
