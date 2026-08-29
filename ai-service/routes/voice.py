@@ -103,7 +103,7 @@ def _call_groq(messages: list, model: str) -> str:
         "https://api.groq.com/openai/v1/chat/completions",
         json={"model": model, "messages": messages, "temperature": 0.5, "max_tokens": 512},
         headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-        timeout=15.0,
+        timeout=20.0,
     )
     resp.raise_for_status()
     return resp.json()["choices"][0]["message"]["content"]
@@ -116,6 +116,51 @@ def get_languages():
 
 
 # ── POST /api/voice/transcribe ────────────────────────────────────────────────
+def _transcribe_groq(audio_bytes: bytes, filename: str, language_code: str) -> dict | None:
+    """Cloud Whisper via Groq — works on Render/Vercel without ffmpeg or a local model."""
+    if not _groq_ready():
+        return None
+    whisper_lang = LANG_MAP.get(language_code, {}).get("whisper_lang")
+    url = "https://api.groq.com/openai/v1/audio/transcriptions"
+    headers = {"Authorization": f"Bearer {GROQ_API_KEY}"}
+
+    def _post(model: str, lang: str | None):
+        data = {"model": model, "response_format": "json"}
+        if lang:
+            data["language"] = lang
+        files = {"file": (filename or "voice.webm", audio_bytes)}
+        resp = httpx.post(url, headers=headers, data=data, files=files, timeout=45.0)
+        resp.raise_for_status()
+        return resp.json()
+
+    last_err = None
+    for model_name in ("whisper-large-v3-turbo", "whisper-large-v3"):
+        try:
+            payload = _post(model_name, whisper_lang)
+            text = (payload.get("text") or "").strip()
+            if not text and whisper_lang:
+                payload = _post(model_name, None)
+                text = (payload.get("text") or "").strip()
+            if not text:
+                continue
+            return {
+                "success": True,
+                "language": language_code,
+                "detectedLanguage": payload.get("language") or whisper_lang or language_code,
+                "transcription": text,
+                "translation": text,
+                "confidence": 0.9,
+                "provider": "groq-whisper",
+                "model": model_name,
+            }
+        except Exception as e:
+            last_err = e
+            log.warning(f"Groq Whisper {model_name} failed: {e}")
+    if last_err:
+        log.warning(f"Groq Whisper failed, will try local: {last_err}")
+    return None
+
+
 @router.post("/transcribe")
 async def transcribe(
     file: UploadFile = File(...),
@@ -125,7 +170,12 @@ async def transcribe(
     if not audio_bytes:
         raise HTTPException(status_code=400, detail="Audio file is empty")
 
-    suffix = "." + (file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "webm")
+    filename = file.filename or "voice.webm"
+    groq_result = _transcribe_groq(audio_bytes, filename, language_code)
+    if groq_result:
+        return groq_result
+
+    suffix = "." + (filename.rsplit(".", 1)[-1] if "." in filename else "webm")
     tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:

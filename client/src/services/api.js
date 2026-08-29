@@ -1,12 +1,27 @@
 import axios from 'axios';
 
-export const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+function resolveApiBase() {
+  let base = String(import.meta.env.VITE_API_URL || '/api').trim().replace(/\/$/, '');
+  if (!base || base === '/api') return '/api';
+  if (!base.endsWith('/api')) base = `${base}/api`;
+  return base;
+}
+
+export const API_BASE = resolveApiBase();
 
 export const api = axios.create({
   baseURL: API_BASE,
+  timeout: 25000,
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+api.interceptors.request.use((config) => {
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  return config;
 });
 
 // Schemes
@@ -20,15 +35,16 @@ export const schemesApi = {
 export const voiceApi = {
   transcribe: (audio, languageCode = 'hi-IN') => {
     const form = new FormData();
-    const ext = (audio.type || '').includes('mp4') ? 'm4a' : 'webm';
+    const mime = audio.type || '';
+    const ext = mime.includes('mp4') || mime.includes('m4a') ? 'm4a' : 'webm';
     form.append('file', audio, `voice.${ext}`);
     form.append('language_code', languageCode);
-    return api.post('/voice/transcribe', form, {
-      headers: { 'Content-Type': undefined },
-    }).then(r => r.data);
+    return api.post('/voice/transcribe', form, { timeout: 90000 }).then(r => r.data);
   },
-  synthesize: (text, language = 'hi-IN') => api.post('/voice/synthesize', { text, language }).then(r => r.data),
-  process: (input, sessionId, language = 'hi-IN', userProfile = {}) => api.post('/voice/process', { input, sessionId, language, userProfile }).then(r => r.data),
+  synthesize: (text, language = 'hi-IN') =>
+    api.post('/voice/synthesize', { text, language }, { timeout: 30000 }).then(r => r.data),
+  process: (input, sessionId, language = 'hi-IN', userProfile = {}) =>
+    api.post('/voice/process', { input, sessionId, language, userProfile }, { timeout: 45000 }).then(r => r.data),
   getLanguages: () => api.get('/voice/languages').then(r => r.data),
 };
 

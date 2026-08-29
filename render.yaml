@@ -1,0 +1,16 @@
+# Render Blueprint — backend API
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: janvaani-ai
+    runtime: python
+    rootDir: ai-service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: WHISPER_MODEL
+        value: tiny
+      - key: PYTHON_VERSION
+        value: "3.12.0"

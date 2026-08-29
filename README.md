@@ -139,8 +139,8 @@ npm run dev:client
 
    | Key | Required | Notes |
    |---|---|---|
-   | `GROQ_API_KEY` | Recommended | LLM responses; falls back to rule-based if missing |
-   | `WHISPER_MODEL` | No | Default: `base` |
+   | `GROQ_API_KEY` | **Yes for voice** | LLM answers + cloud Whisper STT for Hindi, Tamil, Telugu, and the other UI languages. Render does not need ffmpeg when this is set. |
+   | `WHISPER_MODEL` | No | Local STT fallback only. Use `tiny` on free-tier RAM. |
    | `SEARCHAPI_KEY` | No | Web search fallback |
    | `SERPAPI_KEY` | No | Alternative to SearchAPI |
    | `BING_SEARCH_API_KEY` | No | Alternative to SearchAPI |
@@ -155,7 +155,7 @@ npm run dev:client
 
    | Key | Value |
    |---|---|
-   | `VITE_API_URL` | `https://janvaani-ai-api.onrender.com` |
+   | `VITE_API_URL` | `https://your-service.onrender.com` | With or without `/api` — the app appends `/api` if missing. |
 
 4. Deploy. React Router SPA rewrites are handled automatically by `vercel.json`.
 

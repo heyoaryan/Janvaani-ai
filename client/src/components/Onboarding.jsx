@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Briefcase, Calendar, ArrowRight, ArrowLeft, Check, MapPin, Globe, Building2, Users } from 'lucide-react';
 import { LANGUAGES } from '@/i18n/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { API_BASE } from '@/services/api';
 
 // ── Custom DOB Input ───────────────────────────────────────────────────────────
 // Supports typing DD/MM/YYYY or selecting via three dropdowns
@@ -165,8 +166,6 @@ const DOBInput = ({ value, onChange }) => {
     </div>
   );
 };
-
-const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 
 // ── Language selector screen ──────────────────────────────────────────────────
 const LanguageStep = ({ onSelect }) => (

@@ -64,10 +64,20 @@ GENERIC_SCHEME_WORDS = {
 
 
 def _haystack(scheme: dict) -> str:
+    extra = []
+    try:
+        from data.scheme_hi import SCHEME_HI
+        hi = SCHEME_HI.get(scheme.get("id"), {})
+        extra = [hi.get("name") or "", hi.get("description") or ""]
+    except Exception:
+        extra = []
     return " ".join([
         scheme.get("name") or "",
         scheme.get("description") or "",
         scheme.get("category") or "",
+        scheme.get("nameHi") or "",
+        scheme.get("descriptionHi") or "",
+        *extra,
         *scheme.get("keywords", []),
     ]).lower()
 
@@ -213,7 +223,9 @@ CATEGORY_HINTS = {
     ],
     "Agriculture": [
         "kisan", "farmer", "farm", "crop", "kheti", "fasal", "agriculture", "krishi", "beej", "seed", "kishan", "kisaan",
-        "किसान", "खेती", "फसल", "কৃষক", "চাষ", "விவசாயம்", "రైతు", "शेतकरी", "ਕਿਸਾਨ", "കർഷകൻ",
+        "किसान", "खेती", "फसल", "कृषि", "কৃষক", "চাষ", "কৃষি",
+        "விவசாயம்", "விவசாயி", "రైతు", "వ్యవసాయం", "शेतकरी", "शेती",
+        "ખેડૂત", "ખેતી", "ಕೃಷಿ", "ರೈತ", "കർഷകൻ", "കൃഷി", "ਕਿਸਾਨ", "ਖੇਤੀ", "କୃଷକ",
     ],
     "Healthcare": [
         "health", "hospital", "bimaar", "treatment", "medicine", "swasth", "doctor", "ayushman", "medical",
@@ -261,10 +273,25 @@ GENDER_HINTS = {
 }
 
 OCCUPATION_HINTS = {
-    "farmer":        ["kisan", "kishan", "kisaan", "farmer", "kheti", "kisaan", "किसान", "কৃষক", "రైతు", "ਕਿਸਾਨ", "விவசாயி", "शेतकरी", "കർഷകൻ", "ರೈತ"],
-    "student":       ["student", "vidyaarthi", "vidyarthi", "छात्र", "ছাত্র", "மாணவர்", "ਵਿਦਿਆਰਥੀ", "विद्यार्थी", "విద్యార్థి"],
-    "unemployed":    ["berozgaar", "unemployed", "jobless", "बेरोजगार", "বেকার", "ਬੇਰੁਜ਼ਗਾਰ", "வேலை இல்லாத"],
-    "self_employed": ["vyavasaay", "business", "dukandar", "व्यवसाय", "ব্যবসা", "ਕਾਰੋਬਾਰ", "వ్యాపారం"],
+    "farmer": [
+        "kisan", "kishan", "kisaan", "farmer", "kheti", "कृषि", "किसान", "खेती",
+        "কৃষক", "চাষী", "விவசாயி", "விவசாயம்", "రైతు", "వ్యవసాయం",
+        "शेतकरी", "शेती", "ખેડૂત", "ખેતી", "ರೈತ", "ಕೃಷಿ", "കർഷകൻ", "കൃഷി",
+        "ਕਿਸਾਨ", "ਖੇਤੀ", "କୃଷକ", "ଚାଷୀ",
+    ],
+    "student": [
+        "student", "vidyaarthi", "vidyarthi", "scholarship", "छात्र", "पढ़ाई",
+        "ছাত্র", "শিক্ষার্থী", "மாணவர்", "విద్యార్థి", "विद्यार्थी", "વિદ્યાર્થી",
+        "ವಿದ್ಯಾರ್ಥಿ", "വിദ്യാർത്ഥി", "ਵਿਦਿਆਰਥੀ", "ଛାତ୍ର",
+    ],
+    "unemployed": [
+        "berozgaar", "unemployed", "jobless", "बेरोजगार", "বেকার", "ਬੇਰੁਜ਼ਗਾਰ",
+        "வேலை இல்லாத", "నిరుద్యోగి", "બેરોજગાર", "ನಿರುದ್ಯೋಗಿ", "തൊഴിലില്ലാത്ത", "ବେକାର",
+    ],
+    "self_employed": [
+        "vyavasaay", "business", "dukandar", "mudra", "व्यवसाय", "ব্যবসা",
+        "ਕਾਰੋਬਾਰ", "వ్యాపారం", "வணிகம்", "ધંધો", "ವ್ಯಾಪಾರ", "ബിസിനസ്", "ବ୍ୟବସାୟ",
+    ],
 }
 
 

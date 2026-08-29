@@ -237,11 +237,77 @@ const regionalScam = {
   'od-IN': { analyzeTitle: 'ସନ୍ଦେହଜନକ ସନ୍ଦେଶ ଯାଞ୍ଚ', pasteLabel: 'ସନ୍ଦେଶ ପେଷ୍ଟ କରନ୍ତୁ', urlLabel: 'ସନ୍ଦେହଜନକ ଲିଙ୍କ୍ (ବୈକଳ୍ପିକ)', analyzeButton: 'ଠକାମି ଯାଞ୍ଚ', examples: 'ଉଦାହରଣ', tryThis: 'ଏହା ଚେଷ୍ଟା କରନ୍ତୁ', stayProtected: 'ସୁରକ୍ଷିତ ରୁହନ୍ତୁ', stayProtectedBody: 'ସରକାରୀ ପୋର୍ଟାଲରେ ଯାଞ୍ଚ କରନ୍ତୁ। OTP ଦିଅନ୍ତୁ ନାହିଁ।', riskAssessment: 'ବିପଦ ମୂଲ୍ୟାଙ୍କନ', analyzedText: 'ଯାଞ୍ଚିତ ପାଠ', riskIndicators: 'ସୂଚନା', lowDesc: 'ସୁରକ୍ଷିତ ଲାଗୁଛି।', mediumDesc: 'ସତର୍କ ରୁହନ୍ତୁ।', highDesc: 'ଏହା ଠକାମି ହୋଇପାରେ।', staySafe: 'ସତର୍କ', staySafeBody: 'ସରକାରୀ ଅଧିକାରୀ ଫୋନରେ OTP ମାଗନ୍ତି ନାହିଁ।', checkAnother: 'ଅନ୍ୟ ସନ୍ଦେଶ', sms: 'SMS', call: 'କଲ୍', whatsapp: 'ହ୍ୱାଟସଆପ୍' },
 };
 
+const regionalDashboard = {
+  'bn-IN': {
+    foundIntro: 'আপনি {role}। ভারতে আপনার জন্য {count}টি প্রকল্প পাওয়া গেছে।',
+    foundIntroGeneric: 'ভারতে আপনার জন্য {count}টি প্রকল্প পাওয়া গেছে।',
+    foundIntroHint: 'নিচে যোগ্যতা যাচাই করতে পারেন এবং পুরো বিবরণ পড়তে পারেন।',
+    roleFarmer: 'কৃষক',
+    roleStudent: 'শিক্ষার্থী',
+  },
+  'ta-IN': {
+    foundIntro: 'நீங்கள் {role}. இந்தியாவில் உங்களுக்காக {count} திட்டங்கள் கிடைத்தன.',
+    foundIntroGeneric: 'இந்தியாவில் உங்களுக்காக {count} திட்டங்கள் கிடைத்தன.',
+    foundIntroHint: 'கீழே தகுதியைச் சோதித்து முழு விவரங்களையும் படிக்கலாம்.',
+    roleFarmer: 'விவசாயி',
+    roleStudent: 'மாணவர்',
+  },
+  'te-IN': {
+    foundIntro: 'మీరు {role}. భారతదేశంలో మీ కోసం {count} పథకాలు దొరికాయి.',
+    foundIntroGeneric: 'భారతదేశంలో మీ కోసం {count} పథకాలు దొరికాయి.',
+    foundIntroHint: 'కింద అర్హతను తనిఖీ చేసి పూర్తి వివరాలు చదవవచ్చు.',
+    roleFarmer: 'రైతు',
+    roleStudent: 'విద్యార్థి',
+  },
+  'mr-IN': {
+    foundIntro: 'तुम्ही {role} आहात. भारतात तुमच्यासाठी {count} योजना सापडल्या.',
+    foundIntroGeneric: 'भारतात तुमच्यासाठी {count} योजना सापडल्या.',
+    foundIntroHint: 'खाली पात्रता तपासू शकता आणि पूर्ण तपशील वाचू शकता.',
+    roleFarmer: 'शेतकरी',
+    roleStudent: 'विद्यार्थी',
+  },
+  'gu-IN': {
+    foundIntro: 'તમે {role} છો. ભારતમાં તમારા માટે {count} યોજનાઓ મળી.',
+    foundIntroGeneric: 'ભારતમાં તમારા માટે {count} યોજનાઓ મળી.',
+    foundIntroHint: 'નીચે પાત્રતા તપાસી શકો અને સંપૂર્ણ વિગતો વાંચી શકો.',
+    roleFarmer: 'ખેડૂત',
+    roleStudent: 'વિદ્યાર્થી',
+  },
+  'kn-IN': {
+    foundIntro: 'ನೀವು {role}. ಭಾರತದಲ್ಲಿ ನಿಮಗಾಗಿ {count} ಯೋಜನೆಗಳು ಸಿಕ್ಕಿವೆ.',
+    foundIntroGeneric: 'ಭಾರತದಲ್ಲಿ ನಿಮಗಾಗಿ {count} ಯೋಜನೆಗಳು ಸಿಕ್ಕಿವೆ.',
+    foundIntroHint: 'ಕೆಳಗೆ ಅರ್ಹತೆ ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಪೂರ್ಣ ವಿವರಗಳನ್ನು ಓದಬಹುದು.',
+    roleFarmer: 'ರೈತ',
+    roleStudent: 'ವಿದ್ಯಾರ್ಥಿ',
+  },
+  'ml-IN': {
+    foundIntro: 'നിങ്ങൾ {role} ആണ്. ഇന്ത്യയിൽ നിങ്ങൾക്കായി {count} പദ്ധതികൾ കണ്ടെത്തി.',
+    foundIntroGeneric: 'ഇന്ത്യയിൽ നിങ്ങൾക്കായി {count} പദ്ധതികൾ കണ്ടെത്തി.',
+    foundIntroHint: 'താഴെ യോഗ്യത പരിശോധിക്കാം, പൂർണ്ണ വിവരങ്ങളും വായിക്കാം.',
+    roleFarmer: 'കർഷകൻ',
+    roleStudent: 'വിദ്യാർത്ഥി',
+  },
+  'pa-IN': {
+    foundIntro: 'ਤੁਸੀਂ {role} ਹੋ। ਭਾਰਤ ਵਿੱਚ ਤੁਹਾਡੇ ਲਈ {count} ਯੋਜਨਾਵਾਂ ਮਿਲੀਆਂ।',
+    foundIntroGeneric: 'ਭਾਰਤ ਵਿੱਚ ਤੁਹਾਡੇ ਲਈ {count} ਯੋਜਨਾਵਾਂ ਮਿਲੀਆਂ।',
+    foundIntroHint: 'ਹੇਠਾਂ ਯੋਗਤਾ ਜਾਂਚ ਸਕਦੇ ਹੋ ਅਤੇ ਪੂਰਾ ਵਿਵਰਣ ਪੜ੍ਹ ਸਕਦੇ ਹੋ।',
+    roleFarmer: 'ਕਿਸਾਨ',
+    roleStudent: 'ਵਿਦਿਆਰਥੀ',
+  },
+  'od-IN': {
+    foundIntro: 'ଆପଣ {role}। ଭାରତରେ ଆପଣଙ୍କ ପାଇଁ {count} ଯୋଜନା ମିଳିଛି।',
+    foundIntroGeneric: 'ଭାରତରେ ଆପଣଙ୍କ ପାଇଁ {count} ଯୋଜନା ମିଳିଛି।',
+    foundIntroHint: 'ତଳେ ଯୋଗ୍ୟତା ଯାଞ୍ଚ କରିପାରିବେ ଏବଂ ସମ୍ପୂର୍ଣ୍ଣ ବିବରଣୀ ପଢ଼ିପାରିବେ।',
+    roleFarmer: 'କୃଷକ',
+    roleStudent: 'ଛାତ୍ର',
+  },
+};
+
 Object.keys(regionalScam).forEach((code) => {
   extraUi[code] = {
     onboarding: extraUi['en-IN'].onboarding,
     schemeFinder: extraUi['en-IN'].schemeFinder,
-    dashboard: extraUi['en-IN'].dashboard,
+    dashboard: { ...extraUi['en-IN'].dashboard, ...(regionalDashboard[code] || {}) },
     eligibility: { ...eligibilityExtras('en'), ...extraUi['en-IN'].eligibility },
     scamCheck: regionalScam[code],
     docsChecklist: docsChecklistEn,

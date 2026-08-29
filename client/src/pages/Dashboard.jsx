@@ -81,7 +81,22 @@ const Dashboard = () => {
     }
     try {
       setHasSearched(true);
-      // Quick local match on whatever text we have from browser STT
+      const hasAudio = Boolean(audio && audio.size > 0);
+      // Voice: always send audio to the API so Tamil/Telugu/etc. is transcribed
+      // in the selected language. Browser STT is only a fallback when there is no clip.
+      if (hasAudio) {
+        const res = await processVoice(text, audio);
+        const spoken = (res?.transcription || text || '').trim();
+        const occ = applyQueryProfile(spoken, res?.entities);
+        const apiSchemes = res?.suggestedSchemes || [];
+        if (apiSchemes.length) {
+          speakFoundIntro(apiSchemes.length, inferOccupationFromQuery(spoken) || occ, spoken);
+        } else if (res?.response) {
+          speak(res.response, language);
+        }
+        return;
+      }
+
       const local = text.length >= 2
         ? schemes.filter((s) => schemeMatchesQuery(s, text)).slice(0, 6)
         : [];
@@ -90,7 +105,6 @@ const Dashboard = () => {
         speakFoundIntro(local.length, occ, text);
         return;
       }
-      // Pass both text AND audio — VoiceContext will use Whisper if browser STT text is weak
       const res = await processVoice(text, audio);
       applyQueryProfile(text || res?.transcription || '', res?.entities);
       const apiSchemes = res?.suggestedSchemes || [];

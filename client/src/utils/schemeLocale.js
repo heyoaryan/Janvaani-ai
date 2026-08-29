@@ -45,19 +45,43 @@ export function normalizeSearchQuery(query) {
   return q;
 }
 
+const FARMER_HINTS = [
+  'kisan', 'kishan', 'kisaan', 'farmer', 'kheti', 'agriculture', 'krishi',
+  'किसान', 'खेती', 'कृषि', 'কৃষক', 'চাষ', 'কৃষি', 'விவசாயி', 'விவசாயம்',
+  'రైతు', 'వ్యవసాయం', 'शेतकरी', 'शेती', 'ખેડૂત', 'ખેતી', 'ರೈತ', 'ಕೃಷಿ',
+  'കർഷകൻ', 'കൃഷി', 'ਕਿਸਾਨ', 'ਖੇਤੀ', 'କୃଷକ',
+];
+const STUDENT_HINTS = [
+  'student', 'vidyarthi', 'chhatra', 'scholarship', 'छात्र', 'पढ़ाई', 'शिक्षा',
+  'ছাত্র', 'শিক্ষার্থী', 'বৃত্তি', 'மாணவர்', 'கல்வி', 'విద్యార్థి', 'विद्यार्थी',
+  'વિદ્યાર્થી', 'ವಿದ್ಯಾರ್ಥಿ', 'വിദ്യാർത്ഥി', 'ਵਿਦਿਆਰਥੀ', 'ଛାତ୍ର',
+];
+const JOB_HINTS = [
+  'naukri', 'job', 'rozgar', 'unemployed', 'बेरोजगार', 'रोजगार', 'বেকার', 'চাকরি',
+  'வேலை', 'ఉద్యోగం', 'નોકરી', 'ಉದ್ಯೋಗ', 'ജോലി', 'ਨੌਕਰੀ', 'ରୋଜଗାର',
+];
+const BIZ_HINTS = [
+  'business', 'mudra', 'dukan', 'व्यवसाय', 'ব্যবসা', 'வணிகம்', 'వ్యాపారం',
+  'ધંધો', 'ವ್ಯಾಪಾರ', 'ബിസിനസ്', 'ਕਾਰੋਬਾਰ', 'ବ୍ୟବସାୟ',
+];
+
+function queryHasHint(q, hints) {
+  return hints.some((h) => q.includes(h));
+}
+
 export function inferOccupationFromQuery(query) {
   const q = normalizeSearchQuery(query);
-  if (/(kisan|farmer|kheti|कृषि|किसान)/.test(q)) return 'farmer';
-  if (/(student|vidyarthi|chhatra|scholarship|छात्र|पढ़ाई)/.test(q)) return 'student';
-  if (/(naukri|job|rozgar|unemployed|बेरोजगार)/.test(q)) return 'unemployed';
-  if (/(business|mudra|dukan|व्यवसाय)/.test(q)) return 'business';
+  if (queryHasHint(q, FARMER_HINTS)) return 'farmer';
+  if (queryHasHint(q, STUDENT_HINTS)) return 'student';
+  if (queryHasHint(q, JOB_HINTS)) return 'unemployed';
+  if (queryHasHint(q, BIZ_HINTS)) return 'business';
   return '';
 }
 
 export function schemeMatchesQuery(scheme, query) {
   if (!query || !query.trim()) return true;
   const q = normalizeSearchQuery(query).trim();
-  const stop = new Set(['mai', 'main', 'hu', 'hun', 'hoon', 'hai', 'hain', 'konsi', 'kaunsi', 'milegi', 'milega', 'milenge', 'kya', 'ke', 'ki', 'ka', 'ko', 'se', 'aur', 'yojana', 'yojna', 'scheme', 'schemes', 'please', 'for', 'the', 'and']);
+  const stop = new Set(['mai', 'main', 'hu', 'hun', 'hoon', 'hai', 'hain', 'konsi', 'kaunsi', 'milegi', 'milega', 'milenge', 'kya', 'ke', 'ki', 'ka', 'ko', 'se', 'aur', 'yojana', 'yojna', 'scheme', 'schemes', 'please', 'for', 'the', 'and', 'நான்', 'నేను', 'আমি', 'मी', 'હું', 'ನಾನು', 'ഞാൻ', 'ਮੈਂ', 'ମୁଁ']);
   const words = q.split(/\s+/).filter((w) => w.length > 1 && !stop.has(w));
   const haystack = [
     scheme.name,
@@ -74,11 +98,22 @@ export function schemeMatchesQuery(scheme, query) {
     .join(' ')
     .toLowerCase();
   if (haystack.includes(q)) return true;
-  if (!words.length) return false;
-  const farmerAsk = words.some((w) => ['kisan', 'farmer', 'agriculture', 'kheti'].includes(w));
-  if (farmerAsk) {
+
+  const occ = inferOccupationFromQuery(q);
+  if (occ === 'farmer') {
     return scheme.category === 'Agriculture' || Boolean(scheme.eligibilityRules?.farmerRequired);
   }
+  if (occ === 'student') {
+    return scheme.category === 'Education' || Boolean(scheme.eligibilityRules?.studentRequired);
+  }
+  if (occ === 'unemployed') {
+    return scheme.category === 'Employment';
+  }
+  if (occ === 'business') {
+    return scheme.category === 'Business';
+  }
+
+  if (!words.length) return false;
   const hits = words.filter((w) => haystack.includes(w)).length;
   return hits >= 1;
 }

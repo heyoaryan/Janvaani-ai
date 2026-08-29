@@ -88,16 +88,17 @@ export function VoiceProvider({ children }) {
     setError(null);
     setLastResponse(null);
     try {
-      // Use Whisper when browser STT gave nothing or very short text
+      // Browser STT is weak for many Indian languages — always prefer backend STT when we have audio.
       const audioAvailable = recordedAudio && recordedAudio.size > 0;
-      const browserTextWeak = text.length < 4;
-
-      if (audioAvailable && (!text || browserTextWeak)) {
+      if (audioAvailable) {
         try {
           const transcription = await voiceApi.transcribe(recordedAudio, language);
-          const whisperText = transcription?.transcription?.trim();
-          if (whisperText && whisperText.length > text.length) {
-            text = whisperText;
+          const whisperText = (transcription?.transcription || '').trim();
+          if (whisperText) {
+            const indic = language && language !== 'en-IN';
+            if (indic || !text || whisperText.length >= text.length) {
+              text = whisperText;
+            }
           }
         } catch {
           // Browser STT transcript stays as fallback
