@@ -182,22 +182,33 @@ async def synthesize(body: dict):
         raise HTTPException(status_code=400, detail="Text is required")
 
     text = text[:500]
+
+    # gTTS language fallback chain: requested → hi → en
+    gtts_lang   = LANG_MAP.get(language, {}).get("gtts_lang", "hi")
+    lang_chain  = [gtts_lang, "hi", "en"]
+
     try:
         from gtts import gTTS
-        gtts_lang = LANG_MAP.get(language, {}).get("gtts_lang", "hi")
-        tts       = gTTS(text=text, lang=gtts_lang, slow=False)
-        buf       = io.BytesIO()
-        tts.write_to_fp(buf)
-        buf.seek(0)
-        audio_b64 = base64.b64encode(buf.read()).decode("utf-8")
-
-        return {
-            "success":  True,
-            "language": language,
-            "text":     text,
-            "audioUrl": f"data:audio/mp3;base64,{audio_b64}",
-            "provider": "gtts",
-        }
+        last_err = None
+        for lg in lang_chain:
+            try:
+                tts = gTTS(text=text, lang=lg, slow=False)
+                buf = io.BytesIO()
+                tts.write_to_fp(buf)
+                buf.seek(0)
+                audio_b64 = base64.b64encode(buf.read()).decode("utf-8")
+                return {
+                    "success":  True,
+                    "language": language,
+                    "usedLang": lg,
+                    "text":     text,
+                    "audioUrl": f"data:audio/mp3;base64,{audio_b64}",
+                    "provider": "gtts",
+                }
+            except Exception as e:
+                last_err = e
+                log.warning(f"gTTS lang={lg} failed: {e}, trying fallback")
+        raise last_err
     except Exception as e:
         log.error(f"TTS error: {e}")
         raise HTTPException(status_code=500, detail=f"TTS failed: {str(e)}")

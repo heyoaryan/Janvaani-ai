@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef } from 'react';
-import { useVoiceRecognition, useTextToSpeech } from '@/hooks/useVoice';
+import { useVoiceRecognition } from '@/hooks/useVoice';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { voiceApi } from '@/services/api';
@@ -12,13 +12,12 @@ export function VoiceProvider({ children }) {
   const [lastResponse, setLastResponse] = useState(null);
   const [error, setError] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [gttsSpeaking, setGttsSpeaking] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef(null);
 
   const language = appLanguage;
 
   const { isListening, transcript, interim, audioBlob, error: sttError, silenceDetected, start, stop } = useVoiceRecognition(language);
-  const { isSpeaking: browserSpeaking, speak: ttsSpeak, stop: ttsStop } = useTextToSpeech(language);
 
   const startListening = useCallback(() => {
     setError(null);
@@ -28,6 +27,60 @@ export function VoiceProvider({ children }) {
 
   const stopListening = useCallback(() => stop(), [stop]);
 
+  // ── speak: use backend gTTS for proper Indian language audio ─────────────
+  const stopSpeaking = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
+    // Also cancel browser TTS as safety net
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+  }, []);
+
+  const speak = useCallback(async (text, responseLanguage) => {
+    if (!text) return;
+    stopSpeaking();
+
+    const lang = responseLanguage || language;
+    // Truncate to keep gTTS fast (backend caps at 500 chars too)
+    const short = text.length > 400 ? `${text.slice(0, 400).trim()}…` : text;
+
+    try {
+      setIsSpeaking(true);
+      const result = await voiceApi.synthesize(short, lang);
+      if (result?.audioUrl) {
+        const audio = new Audio(result.audioUrl);
+        audioRef.current = audio;
+        audio.onended = () => { setIsSpeaking(false); audioRef.current = null; };
+        audio.onerror = () => {
+          setIsSpeaking(false);
+          audioRef.current = null;
+          // Fallback to browser TTS if audio playback fails
+          _browserSpeak(short, lang);
+        };
+        await audio.play();
+        return;
+      }
+    } catch {
+      // gTTS failed — fall back to browser TTS
+    }
+
+    // Browser TTS fallback
+    setIsSpeaking(false);
+    _browserSpeak(short, lang);
+  }, [language, stopSpeaking]);
+
+  const clearError = useCallback(() => setError(null), []);
+
+  const setLanguage = useCallback((newLang) => {
+    setAppLanguage(newLang);
+  }, [setAppLanguage]);
+
+  // ── processVoice ──────────────────────────────────────────────────────────
   const processVoice = useCallback(async (input = '', recordedAudio = null) => {
     let text = (input || '').trim();
 
@@ -35,10 +88,7 @@ export function VoiceProvider({ children }) {
     setError(null);
     setLastResponse(null);
     try {
-      // Use Whisper when:
-      //   a) no browser STT text at all, OR
-      //   b) audio blob exists and browser gave very short text (< 4 chars — likely noise)
-      //      This handles production where Web Speech API is unavailable or unreliable.
+      // Use Whisper when browser STT gave nothing or very short text
       const audioAvailable = recordedAudio && recordedAudio.size > 0;
       const browserTextWeak = text.length < 4;
 
@@ -80,41 +130,34 @@ export function VoiceProvider({ children }) {
     }
   }, [transcript, language, user]);
 
-  const stopSpeaking = useCallback(() => {
-    ttsStop();
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = '';
-      audioRef.current = null;
-    }
-    setGttsSpeaking(false);
-  }, [ttsStop]);
-
-  const speak = useCallback((text, responseLanguage) => {
-    if (!text) return;
-    stopSpeaking();
-    const short = text.length > 220 ? `${text.slice(0, 220).trim()}…` : text;
-    ttsSpeak(short, responseLanguage || language);
-  }, [language, stopSpeaking, ttsSpeak]);
-
-  const clearError = useCallback(() => setError(null), []);
-
-  const setLanguage = useCallback((newLang) => {
-    setAppLanguage(newLang);
-  }, [setAppLanguage]);
-
   const currentError = error || sttError;
 
   return (
     <VoiceContext.Provider value={{
       isListening, transcript, interimTranscript: interim, audioBlob, silenceDetected,
-      isProcessing, lastResponse, language, error: currentError,
+      isProcessing, lastResponse, language, error: currentError, isSpeaking,
       startListening, stopListening, processVoice, speak, stopSpeaking, setLanguage, clearError,
-      isSpeaking: gttsSpeaking || browserSpeaking,
     }}>
       {children}
     </VoiceContext.Provider>
   );
+}
+
+// ── Browser TTS fallback (used only when gTTS/audio fails) ───────────────────
+function _browserSpeak(text, lang) {
+  if (typeof window === 'undefined' || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang === 'od-IN' ? 'or-IN' : lang;
+  utt.rate = 0.92;
+  const voices = window.speechSynthesis.getVoices();
+  const prefix = (lang || 'en').split('-')[0];
+  const match = voices.find(v => v.lang === lang)
+    || voices.find(v => v.lang.startsWith(prefix))
+    || voices.find(v => v.lang.startsWith('hi'))
+    || voices.find(v => v.lang.startsWith('en'));
+  if (match) utt.voice = match;
+  window.speechSynthesis.speak(utt);
 }
 
 export function useVoice() {
