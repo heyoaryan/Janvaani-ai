@@ -103,9 +103,10 @@ function getBaseUrl(req) {
 function buildGather(req, action, language, prompt, numDigits = 1, speech = false) {
   const baseUrl = getBaseUrl(req);
   const input = speech ? 'input="speech dtmf"' : `numDigits="${numDigits}"`;
+  const speechLanguage = speech ? ` language="${language}"` : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather ${input} action="${baseUrl}${action}" method="POST" timeout="8" speechTimeout="5">
+  <Gather ${input}${speechLanguage} action="${baseUrl}${action}" method="POST" timeout="8" speechTimeout="5">
     ${buildSay(language, prompt)}
   </Gather>
   <Say language="${language}" voice="${getLanguageVoice(language)}">${escapeXml(language === 'hi-IN' ? 'कृपया फिर से प्रयास करें।' : language === 'pa-IN' ? 'ਕਿਰਪਾ ਕਰਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।' : 'Please try again.')}</Say>
@@ -183,7 +184,7 @@ app.post('/voice', (req, res) => {
   const baseUrl = getBaseUrl(req);
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech dtmf" action="${baseUrl}/handle-language" method="POST" timeout="10" speechTimeout="7">
+  <Gather input="speech dtmf" language="hi-IN" action="${baseUrl}/handle-language" method="POST" timeout="10" speechTimeout="7">
     ${buildSay('hi-IN', 'नमस्ते! मैं JanVaani सहायक हूँ। कृपया अपनी भाषा चुनें। 1 के लिए हिन्दी, 2 के लिए English, 3 के लिए ਪੰਜਾਬी।')}
   </Gather>
   <Say language="hi-IN" voice="Polly.Aditi">कोई विकल्प नहीं चुना गया। फिर से कोशिश करें।</Say>
@@ -201,7 +202,7 @@ app.post('/handle-language', (req, res) => {
   const baseUrl = getBaseUrl(req);
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech dtmf" action="${baseUrl}/handle-main-choice" method="POST" timeout="10" speechTimeout="7">
+  <Gather input="speech dtmf" language="${language}" action="${baseUrl}/handle-main-choice" method="POST" timeout="10" speechTimeout="7">
     ${buildSay(language, MAIN_MENU_TEXT[language] || MAIN_MENU_TEXT['hi-IN'])}
   </Gather>
   <Say language="${language}" voice="${getLanguageVoice(language)}">${escapeXml(language === 'hi-IN' ? 'कोई विकल्प नहीं चुना गया।' : language === 'pa-IN' ? 'ਕੋਈ ਵਿਕਲਪ ਨਹੀਂ ਚੁਣਿਆ ਗਿਆ।' : 'No option was selected.')}</Say>
