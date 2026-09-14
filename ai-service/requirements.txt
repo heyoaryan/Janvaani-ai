@@ -9,6 +9,10 @@ faster-whisper==1.0.3
 
 # TTS — free, no API key needed
 gTTS==2.5.1
+# Neural TTS — Microsoft Edge voices, human-like, supports all Indian languages
+edge-tts==7.2.8
+# Indic script transliteration — converts Gurmukhi/Odia to Devanagari for edge-tts
+indic-transliteration==2.3.82
 
 # HTTP client — Groq + web search calls
 httpx==0.27.2

@@ -1,13 +1,27 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
+// Generate a stable session ID for this browser profile — created once, persisted forever.
+function getOrCreateSessionId() {
+  const key = 'janvaani_session_id';
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = `sess-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('janvaani_profile');
+    const sessionId = getOrCreateSessionId();
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Always use the stable session ID, not whatever was saved before
+        return { ...parsed, sessionId };
       } catch {
         // fall through
       }
@@ -16,7 +30,7 @@ export function AuthProvider({ children }) {
       name: '',
       occupation: '',
       age: '',
-      sessionId: '',
+      sessionId,
     };
   });
 
@@ -35,18 +49,22 @@ export function AuthProvider({ children }) {
   };
 
   const completeOnboarding = (profile) => {
-    setUser(profile);
+    // Preserve the stable session ID when completing onboarding
+    const sessionId = getOrCreateSessionId();
+    const profileWithSession = { ...profile, sessionId };
+    setUser(profileWithSession);
     setOnboardingComplete(true);
     localStorage.setItem('janvaani_onboarding', 'complete');
-    localStorage.setItem('janvaani_profile', JSON.stringify(profile));
+    localStorage.setItem('janvaani_profile', JSON.stringify(profileWithSession));
   };
 
   const resetUser = () => {
+    const sessionId = getOrCreateSessionId();
     setUser({
       name: '',
       occupation: '',
       age: '',
-      sessionId: '',
+      sessionId,
     });
     setOnboardingComplete(false);
     localStorage.removeItem('janvaani_profile');

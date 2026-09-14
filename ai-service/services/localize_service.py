@@ -24,6 +24,8 @@ LANG_NAMES = {
     "ml-IN": "Malayalam",
     "pa-IN": "Punjabi",
     "od-IN": "Odia",
+    "mai-IN": "Maithili",
+    "bho-IN": "Bhojpuri",
 }
 
 
@@ -60,11 +62,15 @@ def _translate_via_groq(scheme: dict, language: str) -> dict | None:
     }
     prompt = (
         f"Translate this Indian government scheme into {lang_name}. "
-        "Keep scheme acronyms (PM-KISAN, PMAY) as-is. Keep rupee amounts as-is. "
-        "Return ONLY JSON with keys: name, description, benefits (array), applicationSteps (array).\n"
+        "Use simple, everyday spoken language — not formal bureaucratic style. "
+        "Keep scheme acronyms (PM-KISAN, PMAY, PMJDY) exactly as-is. "
+        "Keep rupee amounts as-is (e.g. ₹6000). "
+        "Return ONLY a JSON object with keys: name, description, benefits (array), applicationSteps (array). "
+        "No markdown, no explanation.\n"
         + json.dumps(payload, ensure_ascii=False)
     )
-    models = ["llama-3.1-8b-instant", "llama3-8b-8192"]
+    # Use the larger chat models — they handle Indic scripts much better than the 8b models
+    models = ["llama-3.3-70b-versatile", "llama-3.1-70b-versatile", "llama-3.1-8b-instant"]
     for model in models:
         try:
             resp = httpx.post(
@@ -72,14 +78,18 @@ def _translate_via_groq(scheme: dict, language: str) -> dict | None:
                 json={
                     "model": model,
                     "messages": [
-                        {"role": "system", "content": "You translate government scheme text. Reply with JSON only."},
+                        {"role": "system", "content": (
+                            f"You are a translator specialising in Indian government scheme text. "
+                            f"Always reply in {lang_name} script only — no Roman letters, no English except proper nouns. "
+                            f"Reply with JSON only."
+                        )},
                         {"role": "user", "content": prompt},
                     ],
-                    "temperature": 0.2,
-                    "max_tokens": 700,
+                    "temperature": 0.1,
+                    "max_tokens": 800,
                 },
                 headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                timeout=12.0,
+                timeout=15.0,
             )
             resp.raise_for_status()
             raw = resp.json()["choices"][0]["message"]["content"].strip()

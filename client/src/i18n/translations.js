@@ -16,6 +16,8 @@ export const LANGUAGES = [
   { code: 'ml-IN', name: 'മലയാളം', englishName: 'Malayalam', flag: '🇮🇳' },
   { code: 'pa-IN', name: 'ਪੰਜਾਬੀ', englishName: 'Punjabi', flag: '🇮🇳' },
   { code: 'od-IN', name: 'ଓଡ଼ିଆ', englishName: 'Odia', flag: '🇮🇳' },
+  { code: 'mai-IN', name: 'मैथिली', englishName: 'Maithili', flag: '🇮🇳' },
+  { code: 'bho-IN', name: 'भोजपुरी', englishName: 'Bhojpuri', flag: '🇮🇳' },
 ];
 
 export const translations = {
@@ -125,6 +127,15 @@ export const translations = {
       stepsToApplyCount: '{count} आवेदन के चरण',
       matchPercent: '{percent}% मिलान',
       voiceError: 'आवाज़ प्रोसेस नहीं हो सकी। कृपया फिर कोशिश करें।',
+      processingHint: 'जनवाणी आपका जवाब तैयार कर रहा है…',
+      govSource: '✓ सरकारी स्रोत',
+      aiGeneratedDisclaimer: 'AI द्वारा जनरेट की गई जानकारी। आधिकारिक सरकारी वेबसाइट पर सत्यापित करें।',
+    },
+    followUp: {
+      askFollowUp: 'और पूछें',
+      title: 'फॉलो-अप सवाल',
+      placeholder: '{lang} में अपना सवाल लिखें…',
+      tapMicToAsk: 'माइक टैप करके पूछें',
     },
     categories: {
       Agriculture: 'कृषि',
@@ -367,6 +378,13 @@ export const translations = {
       saved: 'सेव हो गई',
       noProfile: 'बेहतर सुझाव के लिए अपनी उम्र और पेशा बताएं।',
       empty: 'अभी कोई सुझाव नहीं मिला। योजनाएं ब्राउज़ करें।',
+      updateProfile: 'प्रोफ़ाइल अपडेट करें →',
+      reasonAge: 'उम्र के अनुसार',
+      reasonState: 'आपके राज्य में',
+      reasonFarmer: 'किसान के लिए',
+      reasonStudent: 'छात्र के लिए',
+      years: 'वर्ष',
+      showMore: 'और देखें',
     },
     compare: {
       title: 'योजनाओं की तुलना',
@@ -506,6 +524,15 @@ export const translations = {
       stepsToApplyCount: '{count} steps to apply',
       matchPercent: '{percent}% match',
       voiceError: 'Voice processing failed. Please try again.',
+      processingHint: 'JanVaani is preparing your answer…',
+      govSource: '✓ Govt source',
+      aiGeneratedDisclaimer: 'AI-generated info. Verify on the official government website.',
+    },
+    followUp: {
+      askFollowUp: 'Ask a follow-up',
+      title: 'Follow-up question',
+      placeholder: 'Ask in {lang}…',
+      tapMicToAsk: 'Tap mic to ask',
     },
     categories: {
       Agriculture: 'Agriculture',
@@ -748,6 +775,13 @@ export const translations = {
       saved: 'Saved',
       noProfile: 'Add your age and occupation for better matches.',
       empty: 'No suggestions yet. Browse all schemes.',
+      updateProfile: 'Update profile →',
+      reasonAge: 'Age match',
+      reasonState: 'Your state',
+      reasonFarmer: 'Farmer',
+      reasonStudent: 'Student',
+      years: 'yrs',
+      showMore: 'Show more',
     },
     compare: {
       title: 'Compare schemes',
@@ -817,3 +851,5 @@ export function getTranslation(language, key) {
   }
   return key;
 }
+
+// Note: analyzeError, analyzing, foundInUrl keys are added inline via fallback strings in ScamCheck.jsx

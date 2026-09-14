@@ -393,3 +393,42 @@ export function deepMerge(target, source) {
   });
   return out;
 }
+
+// ── Maithili & Bhojpuri extra UI overlays ─────────────────────────────────────
+// Both use Devanagari, so we reuse Hindi structures with native-language labels.
+
+extraUi['mai-IN'] = {
+  onboarding: { stepStateTitle: 'अहाँ कोन राज्य में रहैत छी?', stepStateSubtitle: 'राज्यक योजना देखाबय लेल' },
+  schemeFinder: { filterByState: 'स्थान से छानू', myState: 'हमर राज्य', allLocations: 'सभ स्थान', locationHint: 'अहाँक राज्यक योजना पहिने' },
+  dashboard: {
+    foundIntro: 'अहाँ {role} छी। भारत में अहाँ लेल {count} योजना भेटल।',
+    foundIntroGeneric: 'भारत में अहाँ लेल {count} योजना भेटल।',
+    foundIntroHint: 'नीचाँ पात्रता जाँचि सकैत छी आ पूरा विवरण पढ़ि सकैत छी।',
+    roleFarmer: 'किसान',
+    roleStudent: 'छात्र',
+  },
+  eligibility: { ...eligibilityExtras('hi'), whyNotTitle: 'योग्य किएक नहि', whyYesTitle: 'योग्य किएक', allIndia: 'पूरा भारत' },
+  scamCheck: { ...scamExtras('hi'), analyzeTitle: 'संदिग्ध संदेश जाँचू', pasteLabel: 'संदिग्ध संदेश इहाँ लिखू', analyzeButton: 'धोखा जाँचू', stayProtected: 'सुरक्षित रहू', checkAnother: 'दोसर संदेश जाँचू' },
+  docsChecklist: { status: 'दस्तावेज सूची', ofUploaded: '{total} में से {have} अहाँ लग', haveIt: 'हमर लग अछि', missing: 'नहि अछि', howToGet: 'नहि अछि से कोना बनाउ', markHave: 'जे अछि से टिक करू', selectScheme: 'पहिने योजना चुनू' },
+  docNames: docsHi,
+  docHowTo: howToHi,
+  states: statesHi,
+};
+
+extraUi['bho-IN'] = {
+  onboarding: { stepStateTitle: 'रउआ कौन राज्य में रहत बानी?', stepStateSubtitle: 'राज्य के योजना देखावे खातिर' },
+  schemeFinder: { filterByState: 'जगह से छानीं', myState: 'हमर राज्य', allLocations: 'सब जगह', locationHint: 'रउआ के राज्य के योजना पहिले' },
+  dashboard: {
+    foundIntro: 'रउआ {role} बानी। भारत में रउआ खातिर {count} योजना मिलल।',
+    foundIntroGeneric: 'भारत में रउआ खातिर {count} योजना मिलल।',
+    foundIntroHint: 'नीचे पात्रता जाँचि सकत बानी आ पूरा विवरण पढ़ि सकत बानी।',
+    roleFarmer: 'किसान',
+    roleStudent: 'छात्र',
+  },
+  eligibility: { ...eligibilityExtras('hi'), whyNotTitle: 'योग्य काहे नइखी', whyYesTitle: 'योग्य काहे बानी', allIndia: 'पूरा भारत' },
+  scamCheck: { ...scamExtras('hi'), analyzeTitle: 'संदिग्ध संदेश जाँचीं', pasteLabel: 'संदिग्ध संदेश इहाँ राखीं', analyzeButton: 'धोखा जाँचीं', stayProtected: 'सुरक्षित रहीं', checkAnother: 'दोसरा संदेश जाँचीं' },
+  docsChecklist: { status: 'कागज सूची', ofUploaded: '{total} में से {have} रउआ लग', haveIt: 'हमरा लग बा', missing: 'नइखे', howToGet: 'नइखे से केइसे बनाईं', markHave: 'जे बा ओह पर टिक करीं', selectScheme: 'पहिले योजना चुनीं' },
+  docNames: docsHi,
+  docHowTo: howToHi,
+  states: statesHi,
+};

@@ -508,16 +508,21 @@ export const categories = [
 ];
 
 export const lifeEvents = [
-  { id: "starting-college", name: "Starting College", nameHi: "कॉलेज शुरू करना", icon: "GraduationCap", description: "Find scholarships and education benefits", schemes: ['pm-scholarship','nsp-scholarship'] },
-  { id: "lost-job", name: "Lost Job", nameHi: "नौकरी चली गई", icon: "Briefcase", description: "Find employment and skill training", schemes: ['pmkvy','ddugky','mgnregs'] },
-  { id: "new-child", name: "New Child Born", nameHi: "नया बच्चा पैदा हुआ", icon: "Baby", description: "Find maternity and child welfare schemes", schemes: ['janani-suraksha','wcd-schemes'] },
-  { id: "buying-home", name: "Buying/Building Home", nameHi: "घर खरीदना/बनाना", icon: "Home", description: "Find housing schemes and subsidies", schemes: ['pmay-urban','pmay-gramin'] },
-  { id: "starting-farming", name: "Starting Farming", nameHi: "खेती शुरू करना", icon: "Tractor", description: "Find agricultural support", schemes: ['pm-kisan','pmfby','kcc'] },
-  { id: "starting-business", name: "Starting Business", nameHi: "व्यवसाय शुरू करना", icon: "Rocket", description: "Find business loans and startup support", schemes: ['pmegp','mudra','startup-india'] },
-  { id: "marriage", name: "Marriage", nameHi: "शादी", icon: "Heart", description: "Find marriage assistance schemes", schemes: [] },
-  { id: "becoming-senior", name: "Becoming Senior Citizen", nameHi: "वरिष्ठ नागरिक बनना", icon: "User", description: "Find pension and healthcare benefits", schemes: ['nsap-oap','ayushman-bharat'] },
-  { id: "disability-support", name: "Disability Support", nameHi: "विकलांगता सहायता", icon: "Heart", description: "Find disability benefits", schemes: ['adip'] },
-  { id: "beti-padhao", name: "Girl Child Education", nameHi: "बेटी की पढ़ाई", icon: "BookOpen", description: "Schemes for girl child", schemes: ['beti-bachao','sukanya-samriddhi'] },
+  { id: "starting-college", name: "Starting College", nameHi: "कॉलेज शुरू करना", icon: "GraduationCap", description: "Find scholarships and education benefits", schemes: ['pm-scholarship','nsp-scholarship','naps-apprentice'] },
+  { id: "lost-job", name: "Lost Job", nameHi: "नौकरी चली गई", icon: "Briefcase", description: "Find employment and skill training", schemes: ['pmkvy','mgnregs','e-shram','naps-apprentice'] },
+  { id: "new-child", name: "New Child Born", nameHi: "नया बच्चा पैदा हुआ", icon: "Baby", description: "Find maternity and child welfare schemes", schemes: ['janani-suraksha','wcd-schemes','pmjay'] },
+  { id: "buying-home", name: "Buying/Building Home", nameHi: "घर खरीदना/बनाना", icon: "Home", description: "Find housing schemes and subsidies", schemes: ['pmay-urban','pmay-gramin','pm-surya-ghar'] },
+  { id: "starting-farming", name: "Starting Farming", nameHi: "खेती शुरू करना", icon: "Tractor", description: "Find agricultural support", schemes: ['pm-kisan','pmfby','kcc','pmksy','pm-kisan-man-dhan'] },
+  { id: "starting-business", name: "Starting Business", nameHi: "व्यवसाय शुरू करना", icon: "Rocket", description: "Find business loans and startup support", schemes: ['pmegp','mudra','startup-india','pm-svanidhi','standup-india'] },
+  { id: "marriage", name: "Marriage", nameHi: "शादी", icon: "Heart", description: "Find marriage assistance and social schemes", schemes: ['pmay-urban','pmay-gramin','sukanya-samriddhi','mh-ladki-bahin'] },
+  { id: "becoming-senior", name: "Becoming Senior Citizen", nameHi: "वरिष्ठ नागरिक बनना", icon: "UserCheck", description: "Find pension and healthcare benefits", schemes: ['nsap-oap','ayushman-bharat','atal-pension','pmjay'] },
+  { id: "disability-support", name: "Disability Support", nameHi: "विकलांगता सहायता", icon: "Accessibility", description: "Find disability benefits and aids", schemes: ['adip'] },
+  { id: "beti-padhao", name: "Girl Child Education", nameHi: "बेटी की पढ़ाई", icon: "BookOpen", description: "Schemes for girl child education and welfare", schemes: ['beti-bachao','sukanya-samriddhi','up-kanya-sumangala','tn-pudhumai-penn'] },
+  { id: "health-emergency", name: "Health Emergency", nameHi: "स्वास्थ्य संकट", icon: "HeartPulse", description: "Find health insurance and treatment support", schemes: ['ayushman-bharat','pmjay','pmjay-abha'] },
+  { id: "skill-training", name: "Want to Learn a Skill", nameHi: "कौशल सीखना है", icon: "Wrench", description: "Find free skill training and certification", schemes: ['pmkvy','naps-apprentice','ddugky'] },
+  { id: "retirement-planning", name: "Planning for Retirement", nameHi: "रिटायरमेंट की तैयारी", icon: "PiggyBank", description: "Pension and savings schemes for future", schemes: ['atal-pension','nsap-oap','pm-kisan-man-dhan'] },
+  { id: "women-welfare", name: "Women's Welfare", nameHi: "महिला कल्याण", icon: "Star", description: "Schemes for women empowerment and support", schemes: ['ujjwala','beti-bachao','pm-lakhpati-didi','mh-ladki-bahin','ka-gruha-lakshmi','wb-lakshmir-bhandar'] },
+  { id: "tribal-indigenous", name: "Tribal & Indigenous Rights", nameHi: "जनजाति अधिकार", icon: "Users", description: "Schemes for scheduled tribes and adivasi communities", schemes: ['pm-janman'] },
 ];
 
 export const documents = [

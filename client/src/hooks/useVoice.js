@@ -11,10 +11,31 @@ const INDIAN_LANGUAGES = [
   { code: 'ml-IN', name: 'മലയാളം', englishName: 'Malayalam' },
   { code: 'pa-IN', name: 'ਪੰਜਾਬੀ', englishName: 'Punjabi' },
   { code: 'od-IN', name: 'ଓଡ଼ିଆ', englishName: 'Odia' },
+  { code: 'mai-IN', name: 'मैथिली', englishName: 'Maithili' },
+  { code: 'bho-IN', name: 'भोजपुरी', englishName: 'Bhojpuri' },
   { code: 'en-IN', name: 'English', englishName: 'English (Indian)' },
 ];
 
-const BROWSER_STT_LANG = { 'od-IN': 'or-IN' };
+// Browser Web Speech API language hint map.
+// We always pass 'hi-IN' as the default because it accepts most Devanagari-family
+// speech (Hindi, Marathi, Bhojpuri, Maithili) and keeps the live interim display
+// somewhat readable while Whisper provides the authoritative final transcript.
+// Exceptions: languages with a specific browser code that Chrome/Safari understand.
+const BROWSER_STT_LANG = {
+  'bn-IN': 'bn-IN',
+  'ta-IN': 'ta-IN',
+  'te-IN': 'te-IN',
+  'kn-IN': 'kn-IN',
+  'ml-IN': 'ml-IN',
+  'gu-IN': 'gu-IN',
+  'pa-IN': 'pa-IN',
+  'od-IN': 'or-IN',   // Odia BCP-47 in browsers is 'or-IN'
+  'en-IN': 'en-IN',
+  // Maithili, Bhojpuri → hi-IN (no browser support, Devanagari script)
+  'mai-IN': 'hi-IN',
+  'bho-IN': 'hi-IN',
+  // Default (hi-IN and anything else) → hi-IN
+};
 
 function pickRecorderMime() {
   if (typeof MediaRecorder === 'undefined') return '';
@@ -35,6 +56,7 @@ export function useVoiceRecognition(language = 'hi-IN') {
   const streamRef = useRef(null);
   const silenceTimerRef = useRef(null);
   const maxListenTimerRef = useRef(null);
+  const noSpeechTimerRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
   const isListeningRef = useRef(false);
   const heardSpeechRef = useRef(false);
@@ -42,9 +64,14 @@ export function useVoiceRecognition(language = 'hi-IN') {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const stopResolveRef = useRef(null);
+  // Tracks how many characters of transcript have been committed so far.
+  // On recognition restart the browser may re-fire old results; we skip them
+  // by only appending text that extends beyond finalizedLength.
+  const finalizedLengthRef = useRef(0);
 
-  const SILENCE_THRESHOLD = 0.045;
-  const SILENCE_DURATION = 2000;
+  const SILENCE_THRESHOLD = 0.035;   // lowered: catches quieter environments
+  const SILENCE_DURATION  = 2000;    // 2s quiet after speech → auto-stop
+  const NO_SPEECH_TIMEOUT = 8000;    // 8s total with no speech → auto-stop
   const MAX_LISTEN_DURATION = 20000;
 
   const getAudioLevel = useCallback(() => {
@@ -75,6 +102,10 @@ export function useVoiceRecognition(language = 'hi-IN') {
     if (maxListenTimerRef.current) {
       clearTimeout(maxListenTimerRef.current);
       maxListenTimerRef.current = null;
+    }
+    if (noSpeechTimerRef.current) {
+      clearTimeout(noSpeechTimerRef.current);
+      noSpeechTimerRef.current = null;
     }
     isListeningRef.current = false;
     setIsListening(false);
@@ -132,6 +163,7 @@ export function useVoiceRecognition(language = 'hi-IN') {
     audioChunksRef.current = [];
     heardSpeechRef.current = false;
     interimRef.current = '';
+    finalizedLengthRef.current = 0;
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -169,7 +201,7 @@ export function useVoiceRecognition(language = 'hi-IN') {
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
-        recognition.lang = BROWSER_STT_LANG[language] || language;
+        recognition.lang = BROWSER_STT_LANG[language] ?? 'hi-IN';
         recognitionRef.current = recognition;
 
         recognition.onresult = (event) => {
@@ -185,7 +217,15 @@ export function useVoiceRecognition(language = 'hi-IN') {
             }
           }
           if (final) {
-            setTranscript((prev) => `${prev} ${final}`.trim());
+            setTranscript((prev) => {
+              // Build the candidate new transcript
+              const candidate = (prev ? `${prev} ${final}` : final).trim();
+              // If the candidate doesn't add anything beyond what's already
+              // committed (stale restart result), ignore it
+              if (candidate.length <= finalizedLengthRef.current) return prev;
+              finalizedLengthRef.current = candidate.length;
+              return candidate;
+            });
           }
           interimRef.current = interimText;
           setInterim(interimText);
@@ -226,6 +266,11 @@ export function useVoiceRecognition(language = 'hi-IN') {
         if (level >= SILENCE_THRESHOLD) {
           lastActivityRef.current = Date.now();
           heardSpeechRef.current = true;
+          // Cancel no-speech timer once we detect audio
+          if (noSpeechTimerRef.current) {
+            clearTimeout(noSpeechTimerRef.current);
+            noSpeechTimerRef.current = null;
+          }
         }
         const elapsed = Date.now() - lastActivityRef.current;
         if (heardSpeechRef.current && elapsed >= SILENCE_DURATION) {
@@ -236,6 +281,14 @@ export function useVoiceRecognition(language = 'hi-IN') {
         silenceTimerRef.current = setTimeout(checkSilence, 200);
       };
       silenceTimerRef.current = setTimeout(checkSilence, 200);
+
+      // No-speech timeout — if user opens mic but never speaks, auto-stop after 8s
+      noSpeechTimerRef.current = setTimeout(() => {
+        if (isListeningRef.current && !heardSpeechRef.current) {
+          setSilenceDetected(true);
+          stopListening();
+        }
+      }, NO_SPEECH_TIMEOUT);
 
       maxListenTimerRef.current = setTimeout(() => {
         if (isListeningRef.current) {

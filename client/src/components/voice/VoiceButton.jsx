@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mic, MicOff, Volume2, Loader2, Languages } from 'lucide-react';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import FollowUpInput from '@/components/voice/FollowUpInput';
 
 const VoiceButton = ({ onTranscript, className = '', size = 'lg' }) => {
   const { 
     isListening, 
     transcript, 
-    interimTranscript, 
+    interimTranscript,
+    audioBlob,
     isProcessing, 
     isSpeaking,
     silenceDetected,
@@ -26,55 +28,93 @@ const VoiceButton = ({ onTranscript, className = '', size = 'lg' }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [localTranscript, setLocalTranscript] = useState('');
   const [response, setResponse] = useState(null);
+  const [followUps, setFollowUps] = useState([]);
   const [showLangPicker, setShowLangPicker] = useState(false);
-  const processedTranscript = useRef('');
-  const langRef = useRef(language);
 
-  useEffect(() => {
-    langRef.current = language;
-  }, [language]);
+  // Guard refs
+  const processedRef = useRef(false);
+  const searchInFlightRef = useRef(false);
+  const audioBlobRef = useRef(audioBlob);
+  audioBlobRef.current = audioBlob;
+  const transcriptRef = useRef(transcript);
+  transcriptRef.current = transcript;
+  const interimRef = useRef(interimTranscript);
+  interimRef.current = interimTranscript;
 
+  // Keep localTranscript in sync for display
   useEffect(() => {
     if (transcript) {
       setLocalTranscript(transcript);
       onTranscript?.(transcript);
     }
-  }, [transcript, isListening, onTranscript]);
+  }, [transcript, onTranscript]);
 
-  useEffect(() => {
-    if (!isListening && localTranscript && !response && processedTranscript.current !== localTranscript) {
-      processedTranscript.current = localTranscript;
-      const timer = setTimeout(() => {
-        processVoice(localTranscript).then(data => {
-          if (data) {
-            setResponse(data);
-            if (data.response) {
-              speak(data.response, data.responseLanguage || data.language || language);
-            }
-          }
-        });
-      }, 500);
-      return () => clearTimeout(timer);
+  // Core processor — always passes audioBlob so Whisper is used for Indic languages
+  const runProcess = useCallback(async (blob) => {
+    if (searchInFlightRef.current) return;
+    searchInFlightRef.current = true;
+    const text = `${transcriptRef.current || ''} ${interimRef.current || ''}`.trim();
+    if (!text && !(blob && blob.size > 0)) {
+      searchInFlightRef.current = false;
+      return;
     }
-  }, [isListening, localTranscript, processVoice, speak, response, language]);
+    try {
+      const data = await processVoice(text, blob || null);
+      if (data) {
+        setResponse(data);
+        // Speak the Groq answer in the correct language
+        if (data.response) {
+          speak(data.response, data.responseLanguage || data.language || language);
+        }
+      }
+    } finally {
+      searchInFlightRef.current = false;
+    }
+  }, [processVoice, speak, language]);
 
-  const handleClick = () => {
+  // Auto-fire when silence is detected (same pattern as Dashboard)
+  useEffect(() => {
+    if (!silenceDetected) {
+      processedRef.current = false;
+      return;
+    }
+    if (processedRef.current) return;
+    const blob = audioBlobRef.current;
+    if (blob?.size > 0) {
+      processedRef.current = true;
+      runProcess(blob);
+      return;
+    }
+    const timer = setTimeout(() => {
+      if (processedRef.current) return;
+      processedRef.current = true;
+      runProcess(audioBlobRef.current);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [silenceDetected, runProcess]);
+
+  const handleClick = async () => {
     if (isListening) {
-      stopListening();
+      const blob = await stopListening();
+      processedRef.current = true;
+      await runProcess(blob);
     } else if (isSpeaking) {
       stopSpeaking();
       setResponse(null);
+      setFollowUps([]);
     } else {
       setLocalTranscript('');
       setResponse(null);
-      processedTranscript.current = '';
+      setFollowUps([]);
+      processedRef.current = false;
+      searchInFlightRef.current = false;
       startListening();
     }
   };
 
   const handleReplay = () => {
     if (response?.response) {
-      speak(response.response);
+      speak(response.response, response.responseLanguage || response.language || language);
     }
   };
 
@@ -83,7 +123,9 @@ const VoiceButton = ({ onTranscript, className = '', size = 'lg' }) => {
     setShowLangPicker(false);
     setLocalTranscript('');
     setResponse(null);
-    processedTranscript.current = '';
+    setFollowUps([]);
+    processedRef.current = false;
+    searchInFlightRef.current = false;
   };
 
   const sizes = {
@@ -218,6 +260,42 @@ const VoiceButton = ({ onTranscript, className = '', size = 'lg' }) => {
                     <Volume2 className="w-4 h-4" />
                     {t('dashboard.listenAgain')}
                   </button>
+
+                  {/* Follow-up answer bubbles */}
+                  <AnimatePresence>
+                    {followUps.map((fu, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-3 pt-3 border-t border-primary-200 space-y-1 text-left"
+                      >
+                        {fu._question && (
+                          <p className="text-[11px] text-primary-500 font-medium">
+                            Q: {fu._question}
+                          </p>
+                        )}
+                        <p className="text-sm text-primary-800 leading-relaxed">{fu.response}</p>
+                        {fu.source?.url && (
+                          <a
+                            href={fu.source.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-primary-600 underline"
+                          >
+                            {fu.source.title}
+                          </a>
+                        )}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+
+                  {/* Follow-up input */}
+                  <div className="mt-3 pt-3 border-t border-primary-200">
+                    <FollowUpInput
+                      onAnswer={(res) => res && setFollowUps((p) => [...p, res])}
+                    />
+                  </div>
                 </div>
               )}
             </div>

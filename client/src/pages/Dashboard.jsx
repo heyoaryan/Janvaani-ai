@@ -10,6 +10,7 @@ import { localizeScheme, schemeMatchesQuery, localizeCategory, extractedProfileU
 import { useVoice } from '@/contexts/VoiceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import FollowUpInput from '@/components/voice/FollowUpInput';
 
 const Dashboard = () => {
   const { user, updateUser } = useAuth();
@@ -33,6 +34,7 @@ const Dashboard = () => {
   const [mode, setMode] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const [dashFollowUps, setDashFollowUps] = useState([]);
   const inputRef = useRef(null);
   const announcedForRef = useRef(null);
 
@@ -81,37 +83,23 @@ const Dashboard = () => {
     }
     try {
       setHasSearched(true);
+      setDashFollowUps([]);
       const hasAudio = Boolean(audio && audio.size > 0);
-      // Voice: always send audio to the API so Tamil/Telugu/etc. is transcribed
-      // in the selected language. Browser STT is only a fallback when there is no clip.
-      if (hasAudio) {
-        const res = await processVoice(text, audio);
-        const spoken = (res?.transcription || text || '').trim();
-        const occ = applyQueryProfile(spoken, res?.entities);
-        const apiSchemes = res?.suggestedSchemes || [];
-        if (apiSchemes.length) {
-          speakFoundIntro(apiSchemes.length, inferOccupationFromQuery(spoken) || occ, spoken);
-        } else if (res?.response) {
-          speak(res.response, language);
-        }
-        return;
-      }
-
-      const local = text.length >= 2
-        ? schemes.filter((s) => schemeMatchesQuery(s, text)).slice(0, 6)
-        : [];
-      const occ = applyQueryProfile(text, {});
-      if (local.length) {
-        speakFoundIntro(local.length, occ, text);
-        return;
-      }
-      const res = await processVoice(text, audio);
-      applyQueryProfile(text || res?.transcription || '', res?.entities);
+      // Always go to API — audio path sends blob for Whisper (Indic STT accuracy),
+      // text-only path sends query directly. No local-only bypass.
+      const res = await processVoice(text, hasAudio ? audio : null);
+      const spoken = (res?.transcription || text || '').trim();
+      const occ = applyQueryProfile(spoken, res?.entities);
       const apiSchemes = res?.suggestedSchemes || [];
       if (apiSchemes.length) {
-        speakFoundIntro(apiSchemes.length, inferOccupationFromQuery(text) || occ, text);
+        // Speak the Groq answer in the correct language script, not just a count intro
+        if (res?.response) {
+          speak(res.response, res.responseLanguage || language);
+        } else {
+          speakFoundIntro(apiSchemes.length, inferOccupationFromQuery(spoken) || occ, spoken);
+        }
       } else if (res?.response) {
-        speak(res.response, language);
+        speak(res.response, res.responseLanguage || language);
       }
     } finally {
       searchInFlightRef.current = false;
@@ -155,19 +143,20 @@ const Dashboard = () => {
     const query = searchQuery.trim();
     if (!query) return;
     setHasSearched(true);
+    setDashFollowUps([]);
     announcedForRef.current = null;
-    const local = schemes.filter((s) => schemeMatchesQuery(s, query)).slice(0, 6);
-    const occ = applyQueryProfile(query, {});
-    if (local.length) {
-      speakFoundIntro(local.length, occ, query);
-      return;
-    }
+    // Always call the API so Groq generates a proper language-aware response.
+    // The local scheme filter on the backend already handles matching.
     const res = await processVoice(query);
     applyQueryProfile(query, res?.entities);
     if (res?.suggestedSchemes?.length) {
-      speakFoundIntro(res.suggestedSchemes.length, inferOccupationFromQuery(query) || user.occupation, query);
+      if (res?.response) {
+        speak(res.response, res.responseLanguage || language);
+      } else {
+        speakFoundIntro(res.suggestedSchemes.length, inferOccupationFromQuery(query) || user.occupation, query);
+      }
     } else if (res?.response) {
-      speak(res.response, language);
+      speak(res.response, res.responseLanguage || language);
     }
   };
 
@@ -175,6 +164,7 @@ const Dashboard = () => {
     setMode(null);
     setSearchQuery('');
     setHasSearched(false);
+    setDashFollowUps([]);
     announcedForRef.current = null;
     stopListening();
   };
@@ -184,6 +174,7 @@ const Dashboard = () => {
     setMode(newMode);
     setHasSearched(false);
     setSearchQuery('');
+    setDashFollowUps([]);
     announcedForRef.current = null;
   };
 
@@ -193,19 +184,34 @@ const Dashboard = () => {
 
   const searchResults = useMemo(() => {
     if (!hasSearched) return [];
-    const local = activeQuery.length >= 2
+    if (lastResponse?.intent === 'greeting' || lastResponse?.answerType === 'greeting') return [];
+
+    const api = lastResponse?.suggestedSchemes || [];
+    const relevantApi = (lastResponse?.schemesRelevant !== false) ? api : [];
+
+    // If backend explicitly said schemes are NOT relevant (schemesRelevant: false),
+    // skip the local filter too — Groq's text response is the right answer, no cards.
+    const skipLocal = lastResponse && lastResponse.schemesRelevant === false;
+
+    const local = (!skipLocal && activeQuery.length >= 2)
       ? schemes.filter((s) => schemeMatchesQuery(s, activeQuery)).slice(0, 6)
       : [];
+
     let source = local;
-    const api = lastResponse?.suggestedSchemes || [];
-    if (api.length) {
+    if (relevantApi.length) {
       if (inferredOcc === 'farmer') {
-        const ag = api.filter((s) => s.category === 'Agriculture' || s.eligibilityRules?.farmerRequired);
+        const ag = relevantApi.filter((s) => s.category === 'Agriculture' || s.eligibilityRules?.farmerRequired);
         source = ag.length ? ag : local;
       } else {
-        source = api;
+        source = relevantApi;
       }
     }
+
+    // Nothing from DB or API — use the Groq-extracted dynamic card if available
+    if (!source.length && lastResponse?.dynamicScheme) {
+      source = [lastResponse.dynamicScheme];
+    }
+
     return source.map((s) => localizeScheme(s, language));
   }, [hasSearched, lastResponse, activeQuery, language, inferredOcc]);
 
@@ -363,87 +369,232 @@ const Dashboard = () => {
       {/* ── RESULTS BODY ── */}
       <div className="flex-1 px-4 py-5 max-w-2xl w-full mx-auto space-y-4">
 
-        {/* Processing */}
-        <AnimatePresence>
-          {isProcessing && searchResults.length === 0 && (
-            <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 border border-amber-100">
-              <Loader2 className="w-4 h-4 text-amber-500 animate-spin flex-shrink-0" />
-              <span className="text-sm text-amber-700">{t('dashboard.analyzing')}</span>
+        {/* ── PROCESSING STATE — hide everything, show only spinner ── */}
+        <AnimatePresence mode="wait">
+          {isProcessing && (
+            <motion.div
+              key="processing"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+              className="flex flex-col items-center justify-center py-20 gap-4"
+            >
+              {/* Pulsing orb */}
+              <div className="relative">
+                <motion.div
+                  className="w-14 h-14 rounded-full bg-primary-600 flex items-center justify-center"
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                </motion.div>
+                <motion.div
+                  className="absolute inset-0 rounded-full bg-primary-400 -z-10"
+                  animate={{ scale: [1, 1.6, 1.6], opacity: [0.5, 0, 0] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-semibold text-gray-700">{t('dashboard.analyzing')}</p>
+                <p className="text-xs text-gray-400">{t('dashboard.processingHint')}</p>
+              </div>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {intro && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white px-5 py-4"
-          >
-            <p className="text-base font-semibold text-gray-900 leading-snug">{intro.title}</p>
-            <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{intro.hint}</p>
-          </motion.div>
-        )}
-
-        {/* ── PRIMARY SCHEME — full card ── */}
-        <AnimatePresence>
-          {searchResults.length > 0 && (
+          {/* ── RESULTS — only shown when NOT processing ── */}
+          {!isProcessing && hasSearched && (
             <motion.div
-              key="primary"
+              key="results"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
             >
-              {/* Main scheme card */}
-              <PrimarySchemeCard scheme={searchResults[0]} />
+              {searchResults.length > 0 ? (
+                <>
+                  {/* Intro banner — only for DB/dynamic scheme results, not greetings */}
+                  {intro && lastResponse?.intent !== 'greeting' && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white px-5 py-4"
+                    >
+                      <p className="text-base font-semibold text-gray-900 leading-snug">{intro.title}</p>
+                      <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{intro.hint}</p>
+                    </motion.div>
+                  )}
 
-              {/* Remaining schemes — compact horizontal chips */}
-              {searchResults.length > 1 && (
-                <div className="mt-4">
-                  <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">
-                    {t('dashboard.schemesFound') || 'More schemes'}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {searchResults.slice(1).map((scheme, i) => (
-                      <Link
-                        key={scheme.id ?? i}
-                        to={`/schemes/${scheme.id}`}
-                        className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-gray-200 hover:border-primary-400 hover:text-primary-600 transition-all shadow-sm text-xs font-medium text-gray-700 group"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary-400 group-hover:bg-primary-600 flex-shrink-0" />
-                        <span className="max-w-[180px] truncate">{scheme.displayName || scheme.name}</span>
-                        <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-primary-500 flex-shrink-0" />
-                      </Link>
-                    ))}
+                  {/* Primary scheme card */}
+                  <PrimarySchemeCard scheme={searchResults[0]} />
+
+                  {/* Remaining schemes — compact chips */}
+                  {searchResults.length > 1 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-400 font-medium mb-2 uppercase tracking-wide">
+                        {t('dashboard.schemesFound')}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {searchResults.slice(1).map((scheme, i) => (
+                          <Link
+                            key={scheme.id ?? i}
+                            to={scheme.isDynamic ? '#' : `/schemes/${scheme.id}`}
+                            className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-gray-200 hover:border-primary-400 hover:text-primary-600 transition-all shadow-sm text-xs font-medium text-gray-700 group"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary-400 group-hover:bg-primary-600 flex-shrink-0" />
+                            <span className="max-w-[180px] truncate">{scheme.displayName || scheme.name}</span>
+                            <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-primary-500 flex-shrink-0" />
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* ── NO SCHEME CARD PATH — text response or no results ── */
+                lastResponse?.response ? (
+                  /* AI text response bubble */
+                  <ResponseBubble
+                    response={lastResponse}
+                    followUps={dashFollowUps}
+                    onFollowUp={(res) => res && setDashFollowUps(p => [...p, res])}
+                  />
+                ) : (
+                  /* Nothing found at all */
+                  <div className="text-center py-16 text-gray-400">
+                    <Search className="w-8 h-8 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm font-medium">{t('dashboard.noSchemesFound')}</p>
+                    <p className="text-xs mt-1">{t('dashboard.tryDifferentKeywords')}</p>
                   </div>
-                </div>
+                )
               )}
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* ── EMPTY STATE ── */}
-        <AnimatePresence>
-          {hasSearched && !isProcessing && searchResults.length === 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="text-center py-16 text-gray-400">
-              <Search className="w-8 h-8 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-medium">{t('dashboard.noSchemesFound')}</p>
-              <p className="text-xs mt-1">{t('dashboard.tryDifferentKeywords')}</p>
+          {/* ── IDLE HINT — before any search ── */}
+          {!isProcessing && !hasSearched && (
+            <motion.div
+              key="idle"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-16 text-gray-300"
+            >
+              {mode === 'mic'
+                ? <><Mic className="w-8 h-8 mx-auto mb-2 opacity-40" /><p className="text-sm">{t('dashboard.tapMicAndSpeak')}</p></>
+                : <><Search className="w-8 h-8 mx-auto mb-2 opacity-40" /><p className="text-sm">{t('dashboard.typeToSearch')}</p></>
+              }
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* ── IDLE HINT ── */}
-        {!hasSearched && !isProcessing && searchResults.length === 0 && (
-          <div className="text-center py-16 text-gray-300">
-            {mode === 'mic'
-              ? <><Mic className="w-8 h-8 mx-auto mb-2 opacity-40" /><p className="text-sm">{t('dashboard.tapMicAndSpeak')}</p></>
-              : <><Search className="w-8 h-8 mx-auto mb-2 opacity-40" /><p className="text-sm">{t('dashboard.typeToSearch')}</p></>
-            }
-          </div>
-        )}
       </div>
+    </div>
+  );
+};
+
+// ── RESPONSE BUBBLE — for text/greeting/general answers ────────────────
+const ResponseBubble = ({ response, followUps = [], onFollowUp }) => {
+  const { t, language } = useLanguage();
+  const { speak, isSpeaking, stopSpeaking } = useVoice();
+
+  const handleReplay = () => {
+    if (isSpeaking) {
+      stopSpeaking();
+    } else if (response?.response) {
+      speak(response.response, response.responseLanguage || language);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Main AI bubble */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl bg-white border border-gray-100 shadow-md overflow-hidden"
+      >
+        {/* Header bar */}
+        <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-primary-50 to-blue-50 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            {/* JanVaani avatar */}
+            <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-[10px] font-bold">JV</span>
+            </div>
+            <span className="text-xs font-semibold text-gray-700">JanVaani AI</span>
+            {response.source?.isGovernmentSource && (
+              <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
+                {t('dashboard.govSource')}
+              </span>
+            )}
+          </div>
+          {/* Voice replay */}
+          <button
+            onClick={handleReplay}
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg font-medium transition-colors ${
+              isSpeaking
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : 'bg-gray-100 text-gray-500 hover:bg-primary-100 hover:text-primary-700'
+            }`}
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+            {isSpeaking ? t('dashboard.speaking') : t('dashboard.listenAgain')}
+          </button>
+        </div>
+
+        {/* Response text */}
+        <div className="px-5 py-4 space-y-3">
+          <p className="text-sm text-gray-800 leading-relaxed">{response.response}</p>
+
+          {/* Source link */}
+          {response.source?.url && (
+            <a
+              href={response.source.url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-medium"
+            >
+              <span className="underline">{response.source.title || response.source.url}</span>
+              <ChevronRight className="w-3 h-3" />
+            </a>
+          )}
+          {response.sourceDisclaimer && (
+            <p className="text-[11px] text-gray-400">{response.sourceDisclaimer}</p>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Follow-up answer bubbles */}
+      <AnimatePresence>
+        {followUps.map((fu, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-2xl bg-white border border-primary-100 shadow-sm overflow-hidden"
+          >
+            {fu._question && (
+              <div className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+                <p className="text-xs text-gray-500 font-medium">
+                  <span className="text-primary-500">↳</span> {fu._question}
+                </p>
+              </div>
+            )}
+            <div className="px-5 py-3 space-y-2">
+              <p className="text-sm text-gray-800 leading-relaxed">{fu.response}</p>
+              {fu.source?.url && (
+                <a href={fu.source.url} target="_blank" rel="noreferrer"
+                  className="text-xs text-primary-600 underline font-medium">
+                  {fu.source.title}
+                </a>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
+      {/* Follow-up input */}
+      <FollowUpInput onAnswer={onFollowUp} />
     </div>
   );
 };
@@ -454,9 +605,17 @@ const PrimarySchemeCard = ({ scheme }) => {
   const { speak } = useVoice();
   const localized = localizeScheme(scheme, language);
 
+  // Follow-up state: keep a list so the user can ask multiple questions
+  const [followUps, setFollowUps] = useState([]);
+
   const handleSpeak = () => {
     const text = `${localized.displayName}. ${localized.displayDescription}. ${(localized.displayBenefits || []).slice(0, 2).join('. ')}`;
     speak(text, language);
+  };
+
+  const handleFollowUpAnswer = (res) => {
+    if (!res) return;
+    setFollowUps((prev) => [...prev, res]);
   };
 
   return (
@@ -466,12 +625,21 @@ const PrimarySchemeCard = ({ scheme }) => {
       className="bg-white rounded-2xl border border-gray-100 shadow-md overflow-hidden"
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-5 py-4 flex items-start justify-between gap-3">
+      <div className={`px-5 py-4 flex items-start justify-between gap-3 ${
+        scheme.isDynamic
+          ? 'bg-gradient-to-r from-violet-600 to-primary-600'
+          : 'bg-gradient-to-r from-primary-600 to-primary-700'
+      }`}>
         <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-xs font-semibold text-primary-200 uppercase tracking-wide">{localizeCategory(scheme.category, t)}</span>
             {scheme.matchPercentage > 0 && (
               <span className="text-xs font-bold text-white bg-white/20 px-2 py-0.5 rounded-full">{t('dashboard.matchPercent', { percent: scheme.matchPercentage })}</span>
+            )}
+            {scheme.isDynamic && (
+              <span className="text-[10px] font-bold text-violet-100 bg-white/15 px-2 py-0.5 rounded-full flex items-center gap-1">
+                ✦ AI
+              </span>
             )}
           </div>
           <h2 className="text-base font-bold text-white leading-snug">{localized.displayName}</h2>
@@ -491,6 +659,14 @@ const PrimarySchemeCard = ({ scheme }) => {
       <div className="px-5 py-4 space-y-3">
         {/* Description */}
         <p className="text-sm text-gray-700 leading-relaxed">{localized.displayDescription}</p>
+
+        {/* Eligibility — shown for dynamic schemes that have it */}
+        {scheme.isDynamic && scheme.eligibility && (
+          <div className="bg-blue-50 rounded-xl px-4 py-3">
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">{t('eligibility.eligibility') || 'Eligibility'}</p>
+            <p className="text-xs text-blue-800 leading-relaxed">{scheme.eligibility}</p>
+          </div>
+        )}
 
         {/* Benefits */}
         {localized.displayBenefits?.length > 0 && (
@@ -529,15 +705,83 @@ const PrimarySchemeCard = ({ scheme }) => {
 
         {/* CTA buttons */}
         <div className="flex gap-2 pt-1">
-          <Link to={`/schemes/${scheme.id}`}
-            className="flex-1 text-center px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
-            {t('schemeFinder.viewDetails')}
-          </Link>
-          <Link to={`/eligibility?scheme=${scheme.id}`}
-            className="flex-1 text-center px-4 py-2.5 rounded-xl border-2 border-primary-600 text-primary-600 text-sm font-semibold hover:bg-primary-50 transition-colors">
-            {t('schemeFinder.checkEligibility')}
-          </Link>
+          {scheme.isDynamic ? (
+            // Dynamic card: no DB detail page — link to official source if available
+            <>
+              {scheme.officialSource ? (
+                <a
+                  href={scheme.officialSource}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 text-center px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
+                >
+                  {t('dashboard.officialSite')} ↗
+                </a>
+              ) : (
+                <span className="flex-1 text-center px-4 py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-semibold">
+                  {t('schemeFinder.viewDetails')}
+                </span>
+              )}
+              <Link
+                to={`/eligibility`}
+                className="flex-1 text-center px-4 py-2.5 rounded-xl border-2 border-primary-600 text-primary-600 text-sm font-semibold hover:bg-primary-50 transition-colors"
+              >
+                {t('schemeFinder.checkEligibility')}
+              </Link>
+            </>
+          ) : (
+            // DB card: link to scheme detail and eligibility pages
+            <>
+              <Link to={`/schemes/${scheme.id}`}
+                className="flex-1 text-center px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors">
+                {t('schemeFinder.viewDetails')}
+              </Link>
+              <Link to={`/eligibility?scheme=${scheme.id}`}
+                className="flex-1 text-center px-4 py-2.5 rounded-xl border-2 border-primary-600 text-primary-600 text-sm font-semibold hover:bg-primary-50 transition-colors">
+                {t('schemeFinder.checkEligibility')}
+              </Link>
+            </>
+          )}
         </div>
+
+        {/* Follow-up answers */}
+        <AnimatePresence>
+          {followUps.map((fu, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl bg-primary-50 border border-primary-100 px-4 py-3 space-y-1"
+            >
+              {fu._question && (
+                <p className="text-xs text-gray-500 font-medium">
+                  Q: {fu._question}
+                </p>
+              )}
+              <p className="text-sm text-primary-900 leading-relaxed">{fu.response}</p>
+              {fu.source?.url && (
+                <a
+                  href={fu.source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-primary-600 underline"
+                >
+                  {fu.source.title}
+                </a>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {/* Follow-up input */}
+        <FollowUpInput onAnswer={handleFollowUpAnswer} className="pt-1" />
+
+        {/* AI disclaimer for dynamic cards */}
+        {scheme.isDynamic && (
+          <p className="text-[11px] text-gray-400 text-center pt-1">
+            ✦ {t('dashboard.aiGeneratedDisclaimer')}
+          </p>
+        )}
       </div>
     </motion.div>
   );

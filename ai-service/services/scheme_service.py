@@ -144,12 +144,13 @@ def match_schemes_for_query(text: str, profile: dict | None = None, limit: int =
     if not by_id and entities.get("occupation"):
         occ = str(entities["occupation"]).lower()
         occ_to_cat = {
-            "farmer": "Agriculture",
-            "student": "Education",
-            "unemployed": "Employment",
+            "farmer":        "Agriculture",
+            "student":       "Education",
+            "unemployed":    "Employment",
             "self_employed": "Business",
             "self-employed": "Business",
-            "business": "Business",
+            "business":      "Business",
+            "disabled":      "Disability",
         }
         mapped = occ_to_cat.get(occ)
         if mapped:
@@ -259,6 +260,18 @@ CATEGORY_HINTS = {
         "women", "mahila", "aurat", "lpg", "gas", "ujjwala",
         "महिला", "মহিলা", "பெண்கள்", "మహిళ", "ਔਰਤ",
     ],
+    "Disability": [
+        "disability", "disabled", "viklang", "divyang", "handicap", "blind", "deaf", "dumb",
+        "drishtiheen", "badhir", "mukhbir", "wheelchair", "prosthetic", "hearing aid",
+        "दिव्यांग", "विकलांग", "दृष्टिहीन", "बाधिर", "अंधा", "अपंग",
+        "প্রতিবন্ধী", "অন্ধ", "বধির",
+        "மாற்றுத்திறனாளி", "பார்வையற்றோர்", "குருடர்",
+        "వికలాంగుడు", "అంధుడు", "చెవిటివాడు",
+        "ಅಂಗವಿಕಲ", "ಕುರುಡು",
+        "അംഗവൈകല്യം", "അന്ധൻ",
+        "ਅਪੰਗ", "ਅੰਨ੍ਹਾ",
+        "ଅଶକ୍ତ", "ଅନ୍ଧ",
+    ],
 }
 
 STATE_HINTS = [
@@ -291,6 +304,12 @@ OCCUPATION_HINTS = {
     "self_employed": [
         "vyavasaay", "business", "dukandar", "mudra", "व्यवसाय", "ব্যবসা",
         "ਕਾਰੋਬਾਰ", "వ్యాపారం", "வணிகம்", "ધંધો", "ವ್ಯಾಪಾರ", "ബിസിനസ്", "ବ୍ୟବସାୟ",
+    ],
+    "disabled": [
+        "disability", "disabled", "viklang", "divyang", "handicap", "blind", "deaf",
+        "drishtiheen", "badhir", "wheelchair",
+        "दिव्यांग", "विकलांग", "दृष्टिहीन", "बाधिर", "अंधा",
+        "প্রতিবন্ধী", "মাற্றுத்திறனாளி", "వికలాంగుడు", "ਅਪੰਗ",
     ],
 }
 
@@ -348,7 +367,24 @@ def extract_entities(text: str) -> dict:
         if val >= 1000:
             entities["income"] = int(val)
 
-    # Intent
+    # Intent — check greeting FIRST before anything else
+    GREETING_RE = re.compile(
+        r"^(hi|hello|hey|helo|hii|namaste|namaskar|namasthe|salam|salaam|sat sri akal|"
+        r"vanakkam|nomoshkar|nomoskar|suprabhat|good\s*morning|good\s*afternoon|good\s*evening|"
+        r"नमस्ते|नमस्कार|नमस्त|हेलो|हैलो|सुप्रभात|"
+        r"வணக்கம்|நமஸ்காரம்|"
+        r"నమస్కారం|నమస్తే|"
+        r"ನಮಸ್ಕಾರ|ನಮಸ್ತೆ|"
+        r"നമസ്കാരം|നമസ്തേ|"
+        r"নমস্কার|নমস্তে|হ্যালো|"
+        r"નમસ્તે|નમસ્કાર|"
+        r"ਸਤ ਸ੍ਰੀ ਅਕਾਲ|ਨਮਸਕਾਰ|ਹੈਲੋ|"
+        r"ନମସ୍କାର|ନମସ୍ତେ)[\s!.,।]*$",
+        re.I | re.UNICODE,
+    )
+    if GREETING_RE.match(text.strip()):
+        return {"intent": "greeting", "category": None, "entities": entities}
+
     if re.search(r"eligible|पात्र|योग्य|milta|mil sakta|পাত্র|தகுதி|అర్హత|ਯੋਗ|qualify", text, re.I):
         intent = "eligibility_check"
     elif re.search(r"apply|kaise|registration|आवेदन|আবেদন|விண்ணப்பம்|దరఖాస్తు|ਅਰਜ਼ੀ", text, re.I):
