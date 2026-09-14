@@ -96,9 +96,14 @@ function buildSay(language, text) {
 
 function getBaseUrl(req) {
   const configured = (process.env.WEBHOOK_BASE_URL || '').trim().replace(/\/$/, '');
-  if (configured) return configured;
-  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0];
-  const host = (req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3000').split(',')[0];
+  const isConfiguredPublicly = !!configured && /^https:\/\//i.test(configured) && !/(localhost|127\.0\.0\.1|ngrok)/i.test(configured);
+
+  if (isConfiguredPublicly) {
+    return configured;
+  }
+
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+  const host = (req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3000').split(',')[0].trim();
   return `${proto}://${host}`;
 }
 
@@ -116,7 +121,7 @@ function buildGather(req, action, language, prompt, numDigits = 1, speech = fals
 
 function isPublicWebhookConfigured() {
   const url = (process.env.WEBHOOK_BASE_URL || '').trim();
-  return !!url && /^https:\/\//i.test(url) && !/localhost|127\.0\.0\.1/i.test(url);
+  return !!url && /^https:\/\//i.test(url) && !/(localhost|127\.0\.0\.1|ngrok)/i.test(url);
 }
 
 function readSpeechInput(req) {
