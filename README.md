@@ -4,7 +4,7 @@
 
 JanVaani AI is a voice-first citizen co-pilot that helps people discover, check eligibility for, and apply to Indian government schemes — in their own language.
 
-Built as a hackathon prototype for CCU Hackathon, it combines a multilingual voice interface, an AI scheme finder, a rule-based eligibility engine, and a smart document checklist into a single, accessible web app.
+It combines a multilingual voice interface, an AI scheme finder, a rule-based eligibility engine, and a smart document checklist into a single, accessible web app.
 
 ---
 
@@ -183,7 +183,7 @@ Base path: `/api`
 ### Documents
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/documents/upload` | Upload document (mock OCR) |
+| `POST` | `/documents/upload` | Upload document for analysis |
 | `POST` | `/documents/check` | Document checklist for a scheme |
 | `POST` | `/documents/missing` | List missing documents |
 
@@ -247,11 +247,11 @@ Full interactive docs available at `/docs` when the server is running.
 
 ## ⚠️ Disclaimer
 
-This is a **hackathon prototype**. All scheme data, eligibility rules, and AI responses are for demonstration purposes only.
+All scheme data, eligibility rules, and AI responses are for demonstration purposes only.
 
 - Not an official government portal.
 - AI assessments are preliminary — always verify with official sources.
-- Mock data is clearly labeled and designed for easy replacement with live, verified data.
+- Data sources and AI assessments should be verified against official information.
 
 ---
 

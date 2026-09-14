@@ -186,33 +186,42 @@ const Dashboard = () => {
     if (!hasSearched) return [];
     if (lastResponse?.intent === 'greeting' || lastResponse?.answerType === 'greeting') return [];
 
+    // If backend said schemes are NOT relevant → show only text answer, no cards
+    if (lastResponse?.schemesRelevant === false) return [];
+
     const api = lastResponse?.suggestedSchemes || [];
-    const relevantApi = (lastResponse?.schemesRelevant !== false) ? api : [];
+    const relevantApi = api; // already filtered by backend
 
-    // If backend explicitly said schemes are NOT relevant (schemesRelevant: false),
-    // skip the local filter too — Groq's text response is the right answer, no cards.
-    const skipLocal = lastResponse && lastResponse.schemesRelevant === false;
-
-    const local = (!skipLocal && activeQuery.length >= 2)
-      ? schemes.filter((s) => schemeMatchesQuery(s, activeQuery)).slice(0, 6)
-      : [];
-
-    let source = local;
+    // If API returned relevant results, prefer them exclusively (no local mix → no duplicates)
     if (relevantApi.length) {
+      let source = relevantApi;
       if (inferredOcc === 'farmer') {
         const ag = relevantApi.filter((s) => s.category === 'Agriculture' || s.eligibilityRules?.farmerRequired);
-        source = ag.length ? ag : local;
-      } else {
-        source = relevantApi;
+        if (ag.length) source = ag;
       }
+      // Deduplicate by id
+      const seen = new Set();
+      const deduped = source.filter((s) => {
+        const key = s.id ?? s.name;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      return deduped.map((s) => localizeScheme(s, language));
     }
 
-    // Nothing from DB or API — use the Groq-extracted dynamic card if available
-    if (!source.length && lastResponse?.dynamicScheme) {
-      source = [lastResponse.dynamicScheme];
+    // No API results — fall back to local keyword filter only if no text response
+    if (!lastResponse?.response && activeQuery.length >= 2) {
+      const local = schemes.filter((s) => schemeMatchesQuery(s, activeQuery)).slice(0, 6);
+      if (local.length) return local.map((s) => localizeScheme(s, language));
     }
 
-    return source.map((s) => localizeScheme(s, language));
+    // Dynamic card only when no text response would cover it
+    if (!lastResponse?.response && lastResponse?.dynamicScheme) {
+      return [localizeScheme(lastResponse.dynamicScheme, language)];
+    }
+
+    return [];
   }, [hasSearched, lastResponse, activeQuery, language, inferredOcc]);
 
   const intro = searchResults.length > 0 ? buildFoundIntro(searchResults.length, inferredOcc) : null;
@@ -282,12 +291,12 @@ const Dashboard = () => {
     <div className="min-h-full bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/20 flex flex-col">
 
       {/* ── TOP INPUT BAR ── */}
-      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
+      <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 py-2">
+        <div className="max-w-2xl mx-auto flex items-start gap-3 pt-1 pb-1">
 
           {/* Back */}
           <button onClick={handleReset}
-            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-shrink-0">
+            className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-shrink-0 mt-0.5">
             <ArrowLeft className="w-4 h-4" />
           </button>
 
@@ -314,11 +323,11 @@ const Dashboard = () => {
             </form>
           ) : (
             /* Mic status */
-            <div className="flex-1 flex items-center gap-3">
+            <div className="flex-1 flex items-start gap-3">
               <motion.button
                 onClick={handleMicToggle}
                 whileTap={{ scale: 0.93 }}
-                className={`w-10 h-10 rounded-full flex items-center justify-center shadow-md flex-shrink-0 transition-all ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center shadow-md flex-shrink-0 mt-0.5 transition-all ${
                   isListening ? 'bg-red-500 shadow-red-200' :
                   isProcessing ? 'bg-amber-500 shadow-amber-200' :
                   'bg-primary-600 shadow-primary-200'
@@ -339,7 +348,7 @@ const Dashboard = () => {
               {/* Live transcript inline */}
               <div className="flex-1 min-w-0">
                 {liveText.trim() ? (
-                  <p className="text-sm text-gray-800 truncate">
+                  <p className="text-sm text-gray-800 leading-snug line-clamp-3 break-words">
                     {transcript}
                     {interimTranscript && <span className="text-gray-400 italic"> {interimTranscript}</span>}
                   </p>
@@ -358,7 +367,7 @@ const Dashboard = () => {
           {/* Switch mode pill */}
           <button
             onClick={() => handleSwitchMode(mode === 'mic' ? 'type' : 'mic')}
-            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-500 text-xs font-medium hover:border-primary-400 hover:text-primary-600 transition-all bg-white shadow-sm"
+            className="flex-shrink-0 self-start mt-0.5 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-500 text-xs font-medium hover:border-primary-400 hover:text-primary-600 transition-all bg-white shadow-sm"
           >
             {mode === 'mic' ? <Search className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
             {mode === 'mic' ? t('dashboard.type') : t('dashboard.speak')}
@@ -414,15 +423,14 @@ const Dashboard = () => {
             >
               {searchResults.length > 0 ? (
                 <>
-                  {/* Intro banner — only for DB/dynamic scheme results, not greetings */}
-                  {intro && lastResponse?.intent !== 'greeting' && (
+                  {/* AI text response — shown above scheme cards when both exist */}
+                  {lastResponse?.response && lastResponse?.schemesRelevant !== false && (
                     <motion.div
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white px-5 py-4"
                     >
-                      <p className="text-base font-semibold text-gray-900 leading-snug">{intro.title}</p>
-                      <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{intro.hint}</p>
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{lastResponse.response}</p>
                     </motion.div>
                   )}
 
@@ -436,17 +444,36 @@ const Dashboard = () => {
                         {t('dashboard.schemesFound')}
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {searchResults.slice(1).map((scheme, i) => (
-                          <Link
-                            key={scheme.id ?? i}
-                            to={scheme.isDynamic ? '#' : `/schemes/${scheme.id}`}
-                            className="flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-gray-200 hover:border-primary-400 hover:text-primary-600 transition-all shadow-sm text-xs font-medium text-gray-700 group"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary-400 group-hover:bg-primary-600 flex-shrink-0" />
-                            <span className="max-w-[180px] truncate">{scheme.displayName || scheme.name}</span>
-                            <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-primary-500 flex-shrink-0" />
-                          </Link>
-                        ))}
+                        {searchResults.slice(1).map((scheme, i) => {
+                          const chipClass = "flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-gray-200 hover:border-primary-400 hover:text-primary-600 transition-all shadow-sm text-xs font-medium text-gray-700 group";
+                          const inner = (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-primary-400 group-hover:bg-primary-600 flex-shrink-0" />
+                              <span className="max-w-[180px] truncate">{scheme.displayName || scheme.name}</span>
+                              <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-primary-500 flex-shrink-0" />
+                            </>
+                          );
+
+                          if (scheme.isDynamic && scheme.officialSource) {
+                            return (
+                              <a key={scheme.id ?? i} href={scheme.officialSource} target="_blank" rel="noopener noreferrer" className={chipClass}>
+                                {inner}
+                              </a>
+                            );
+                          }
+                          if (scheme.isDynamic) {
+                            return (
+                              <Link key={scheme.id ?? i} to="/schemes" className={chipClass}>
+                                {inner}
+                              </Link>
+                            );
+                          }
+                          return (
+                            <Link key={scheme.id ?? i} to={`/schemes/${scheme.id}`} className={chipClass}>
+                              {inner}
+                            </Link>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
@@ -544,7 +571,7 @@ const ResponseBubble = ({ response, followUps = [], onFollowUp }) => {
 
         {/* Response text */}
         <div className="px-5 py-4 space-y-3">
-          <p className="text-sm text-gray-800 leading-relaxed">{response.response}</p>
+          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{response.response}</p>
 
           {/* Source link */}
           {response.source?.url && (
@@ -663,7 +690,7 @@ const PrimarySchemeCard = ({ scheme }) => {
         {/* Eligibility — shown for dynamic schemes that have it */}
         {scheme.isDynamic && scheme.eligibility && (
           <div className="bg-blue-50 rounded-xl px-4 py-3">
-            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">{t('eligibility.eligibility') || 'Eligibility'}</p>
+            <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">{t('nav.eligibility')}</p>
             <p className="text-xs text-blue-800 leading-relaxed">{scheme.eligibility}</p>
           </div>
         )}
@@ -706,8 +733,8 @@ const PrimarySchemeCard = ({ scheme }) => {
         {/* CTA buttons */}
         <div className="flex gap-2 pt-1">
           {scheme.isDynamic ? (
-            // Dynamic card: no DB detail page — link to official source if available
             <>
+              {/* Dynamic: View Details → official site if available, else schemes page */}
               {scheme.officialSource ? (
                 <a
                   href={scheme.officialSource}
@@ -715,15 +742,19 @@ const PrimarySchemeCard = ({ scheme }) => {
                   rel="noreferrer"
                   className="flex-1 text-center px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
                 >
-                  {t('dashboard.officialSite')} ↗
+                  {t('schemeFinder.viewDetails')} ↗
                 </a>
               ) : (
-                <span className="flex-1 text-center px-4 py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-semibold">
+                <Link
+                  to="/schemes"
+                  className="flex-1 text-center px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 transition-colors"
+                >
                   {t('schemeFinder.viewDetails')}
-                </span>
+                </Link>
               )}
+              {/* Dynamic: Eligibility → general eligibility checker */}
               <Link
-                to={`/eligibility`}
+                to="/eligibility"
                 className="flex-1 text-center px-4 py-2.5 rounded-xl border-2 border-primary-600 text-primary-600 text-sm font-semibold hover:bg-primary-50 transition-colors"
               >
                 {t('schemeFinder.checkEligibility')}

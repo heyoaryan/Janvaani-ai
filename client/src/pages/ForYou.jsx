@@ -83,7 +83,7 @@ const ForYou = () => {
               {bit.label}
             </div>
           ))}
-          <Link to="/onboarding" className="text-xs text-primary-600 hover:underline font-medium ml-1">
+          <Link to="/profile" className="text-xs text-primary-600 hover:underline font-medium ml-1">
             {t('forYou.updateProfile') || 'Update profile →'}
           </Link>
         </div>
@@ -92,7 +92,7 @@ const ForYou = () => {
           <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-800">{t('forYou.noProfile')}</p>
-            <Link to="/onboarding" className="text-xs text-amber-700 underline font-medium">
+            <Link to="/profile" className="text-xs text-amber-700 underline font-medium">
               {t('forYou.updateProfile') || 'Complete your profile for better matches →'}
             </Link>
           </div>

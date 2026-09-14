@@ -30,6 +30,11 @@ export function AuthProvider({ children }) {
       name: '',
       occupation: '',
       age: '',
+      gender: '',
+      city: '',
+      dob: '',
+      state: '',
+      income: '',
       sessionId,
     };
   });
@@ -64,6 +69,11 @@ export function AuthProvider({ children }) {
       name: '',
       occupation: '',
       age: '',
+      gender: '',
+      city: '',
+      dob: '',
+      state: '',
+      income: '',
       sessionId,
     });
     setOnboardingComplete(false);

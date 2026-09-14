@@ -214,7 +214,6 @@ function _browserSpeak(text, lang) {
     // If no voice found for this language, do NOT fall back to English —
     // that would speak the wrong language. Stay silent instead.
     if (!match) {
-      log.debug?.(`No browser voice for ${bcp47} — skipping browser TTS`);
       return;
     }
 

@@ -56,15 +56,48 @@ export const onboardingApi = {
 
 // Documents
 export const documentsApi = {
-  upload: (file) => {
-    const formData = new FormData();
-    formData.append('document', file);
-    return api.post('/documents/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }).then(r => r.data);
+  /**
+   * Upload a file for OCR analysis.
+   * @param {File} file - the file object from an <input type="file">
+   * @param {object} opts - optional { hint: string, profileName: string }
+   */
+  upload: (file, { hint = '', profileName = '' } = {}) => {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    if (hint)        form.append('hint', hint);
+    if (profileName) form.append('profileName', profileName);
+    return api.post('/documents/upload', form, { timeout: 60000 }).then(r => r.data);
   },
-  check: (docId, schemeId) => api.post('/documents/check', { docId, schemeId }).then(r => r.data),
-  getMissing: (schemeId, uploadedDocs) => api.post('/documents/missing', { schemeId, uploadedDocs }).then(r => r.data),
+
+  /**
+   * Verify one file against a specific scheme document key.
+   * Returns { status: 'verified'|'warning'|'error'|'wrong_document', warnings, extractedFields, ... }
+   * @param {File} file
+   * @param {object} opts - { schemeDocKey: string, profileName: string }
+   */
+  verify: (file, { schemeDocKey = '', profileName = '' } = {}) => {
+    const form = new FormData();
+    form.append('file', file, file.name);
+    if (schemeDocKey) form.append('schemeDocKey', schemeDocKey);
+    if (profileName)  form.append('profileName', profileName);
+    return api.post('/documents/verify', form, { timeout: 60000 }).then(r => r.data);
+  },
+
+  /**
+   * Check multiple uploaded-doc objects against a scheme.
+   * @param {string} schemeId
+   * @param {Array}  documents - array of { type, extractedFields, ... }
+   */
+  check: (schemeId, documents) =>
+    api.post('/documents/check', { schemeId, documents }).then(r => r.data),
+
+  /**
+   * Get missing documents for a scheme.
+   * @param {string} schemeId
+   * @param {Array}  uploadedDocs
+   */
+  getMissing: (schemeId, uploadedDocs) =>
+    api.post('/documents/missing', { schemeId, uploadedDocs }).then(r => r.data),
 };
 
 // Eligibility

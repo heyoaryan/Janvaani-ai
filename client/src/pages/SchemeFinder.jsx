@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { categoryKey, schemeMatchesQuery, localizeCategory } from '@/utils/schemeLocale';
+import { categoryKey, schemeMatchesQuery, localizeCategory, recommendSchemes } from '@/utils/schemeLocale';
 import { isSchemeForState, INDIAN_STATES, normalizeState } from '@/data/indianStates';
 import { voiceApi } from '@/services/api';
 
@@ -42,6 +42,12 @@ const SchemeFinder = () => {
       startListening();
     }
   };
+
+  // Build a match-percentage map from user profile using the same engine as ForYou
+  const matchMap = useMemo(() => {
+    const ranked = recommendSchemes(user, schemes);
+    return Object.fromEntries(ranked.map((s) => [s.id, s.matchPercentage || 0]));
+  }, [user]);
 
   const filteredSchemes = useMemo(() => {
     const userState = normalizeState(user.state);
@@ -177,7 +183,7 @@ const SchemeFinder = () => {
             <SchemeCard
               key={scheme.id}
               scheme={scheme}
-              matchPercentage={0}
+              matchPercentage={matchMap[scheme.id] ?? 0}
               onClick={() => navigate(`/schemes/${scheme.id}`)}
               onCheckEligibility={() => navigate(`/eligibility?scheme=${scheme.id}`)}
             />

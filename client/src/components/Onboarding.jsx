@@ -381,6 +381,17 @@ const Onboarding = ({ onComplete }) => {
       ? Math.floor((Date.now() - new Date(formData.dob)) / (365.25 * 24 * 3600 * 1000))
       : null;
 
+    // Full local profile — always built so nothing is lost regardless of API outcome
+    const localProfile = {
+      sessionId:  `profile-${Date.now()}`,
+      name:       formData.name,
+      occupation: formData.occupation,
+      age,
+      city:       formData.city,
+      dob:        formData.dob,
+      gender:     formData.gender,
+    };
+
     try {
       const res = await fetch(`${API_BASE}/onboarding/complete`, {
         method: 'POST',
@@ -389,25 +400,18 @@ const Onboarding = ({ onComplete }) => {
       });
       const data = await res.json();
       if (data.success) {
+        // Merge API response with local data so no field is ever dropped
+        const merged = { ...localProfile, ...data.profile };
         localStorage.setItem('janvaani_onboarding', 'complete');
-        localStorage.setItem('janvaani_profile', JSON.stringify(data.profile));
-        onComplete?.(data.profile);
+        localStorage.setItem('janvaani_profile', JSON.stringify(merged));
+        onComplete?.(merged);
         return;
       }
     } catch (_) { /* fallback below */ }
 
-    const profile = {
-      sessionId: `profile-${Date.now()}`,
-      name: formData.name,
-      occupation: formData.occupation,
-      age,
-      city: formData.city,
-      dob: formData.dob,
-      gender: formData.gender,
-    };
     localStorage.setItem('janvaani_onboarding', 'complete');
-    localStorage.setItem('janvaani_profile', JSON.stringify(profile));
-    onComplete?.(profile);
+    localStorage.setItem('janvaani_profile', JSON.stringify(localProfile));
+    onComplete?.(localProfile);
     setIsSubmitting(false);
   };
 

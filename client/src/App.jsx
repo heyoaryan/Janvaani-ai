@@ -14,6 +14,7 @@ const EligibilityChecker = lazy(() => import('@/pages/EligibilityChecker'));
 const MissingDocs = lazy(() => import('@/pages/MissingDocs'));
 const LifeEvents = lazy(() => import('@/pages/LifeEvents'));
 const ScamCheck = lazy(() => import('@/pages/ScamCheck'));
+const ManageProfile = lazy(() => import('@/pages/ManageProfile'));
 
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center h-64">
@@ -48,6 +49,8 @@ const App = () => {
         <Route path="missing-docs" element={page(MissingDocs)} />
         <Route path="life-events" element={page(LifeEvents)} />
         <Route path="scam-check" element={page(ScamCheck)} />
+        <Route path="profile" element={page(ManageProfile)} />
+        <Route path="onboarding" element={<Navigate to="/profile" replace />} />
         <Route path="documents" element={<Navigate to="/missing-docs" replace />} />
         <Route path="application-copilot" element={<Navigate to="/for-you" replace />} />
         <Route path="family-benefits" element={<Navigate to="/for-you" replace />} />

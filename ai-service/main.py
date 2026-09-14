@@ -10,7 +10,7 @@ Routes:
   POST /api/schemes/search      → AI-powered search
   POST /api/eligibility/check   → full eligibility check
   POST /api/eligibility/quick-check
-  POST /api/documents/upload    → mock OCR
+    POST /api/documents/upload    → document analysis
   POST /api/documents/check     → doc checklist for scheme
   POST /api/documents/missing   → missing docs
   POST /api/scam/analyze        → scam message analysis

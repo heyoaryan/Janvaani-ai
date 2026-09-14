@@ -39,6 +39,25 @@ const EligibilityChecker = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Auto-run check when a scheme is pre-selected via URL
+  const autoCheckedRef = React.useRef('');
+  useEffect(() => {
+    const id = searchParams.get('scheme');
+    if (id && id !== autoCheckedRef.current && findSchemeById(id)) {
+      autoCheckedRef.current = id;
+      setSelectedSchemeId(id);
+      setResult(null);
+      try {
+        const scheme = findSchemeById(id);
+        const res = evaluateSchemeEligibility(scheme, user, t, language);
+        setResult(res);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   const handleCheck = () => {
     if (!selectedSchemeId) return;
     const scheme = findSchemeById(selectedSchemeId);
@@ -81,7 +100,7 @@ const EligibilityChecker = () => {
               onChange={(e) => updateUser({ gender: e.target.value })}
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
-              <option value="">{t('schemeFinder.allLocations').replace('locations', 'genders') || '— Select —'}</option>
+              <option value="">{t('eligibility.selectGender') || '— चुनें —'}</option>
               <option value="male">{t('eligibility.male')}</option>
               <option value="female">{t('eligibility.female')}</option>
               <option value="other">{t('eligibility.other')}</option>
@@ -127,14 +146,20 @@ const EligibilityChecker = () => {
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('schemeFinder.schemes')}</label>
+          <div className="sm:col-span-2 lg:col-span-3">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('eligibility.selectScheme') || 'योजना चुनें'}</label>
+            {selectedSchemeId && findSchemeById(selectedSchemeId) && (
+              <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-xl bg-primary-50 border border-primary-200 text-primary-700 text-sm font-semibold">
+                <span className="w-2 h-2 rounded-full bg-primary-500 flex-shrink-0" />
+                {localizeScheme(findSchemeById(selectedSchemeId), language).displayName}
+              </div>
+            )}
             <select
               value={selectedSchemeId}
-              onChange={(e) => setSelectedSchemeId(e.target.value)}
+              onChange={(e) => { setSelectedSchemeId(e.target.value); setResult(null); }}
               className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
-              <option value="">{t('schemeFinder.searchPlaceholder')}</option>
+              <option value="">{t('eligibility.selectSchemePlaceholder') || '— योजना चुनें —'}</option>
               {schemes.map((scheme) => (
                 <option key={scheme.id} value={scheme.id}>{localizeScheme(scheme, language).displayName}</option>
               ))}
@@ -142,9 +167,19 @@ const EligibilityChecker = () => {
           </div>
         </div>
         <div className="flex gap-3 mt-6">
-          <Button onClick={handleCheck} loading={isChecking} className="w-full sm:w-auto">
+          <Button
+            onClick={handleCheck}
+            loading={isChecking}
+            disabled={!selectedSchemeId}
+            className="w-full sm:w-auto"
+          >
             {isChecking ? t('eligibility.checking') : t('eligibility.checkEligibility')}
           </Button>
+          {result && (
+            <Button variant="outline" onClick={() => { setResult(null); setSelectedSchemeId(''); }} className="w-full sm:w-auto">
+              {t('eligibility.reset') || 'Reset'}
+            </Button>
+          )}
         </div>
       </Card>
 

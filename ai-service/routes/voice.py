@@ -56,12 +56,15 @@ SUPPORTED_LANGUAGES = [
     {"code": "gu-IN", "name": "ગુજરાતી (Gujarati)",     "gtts_lang": "gu", "whisper_lang": "gu", "edge_voice": "gu-IN-DhwaniNeural"},
     {"code": "kn-IN", "name": "ಕನ್ನಡ (Kannada)",        "gtts_lang": "kn", "whisper_lang": "kn", "edge_voice": "kn-IN-SapnaNeural"},
     {"code": "ml-IN", "name": "മലയാളം (Malayalam)",     "gtts_lang": "ml", "whisper_lang": "ml", "edge_voice": "ml-IN-SobhanaNeural"},
-    # Punjabi: no native gTTS/edge — use ur-IN-GulNeural (Urdu-Indian, closest neural voice)
-    # Odia:    no native gTTS/edge — use hi-IN-SwaraNeural (Hindi Neural, closest available)
-    {"code": "pa-IN", "name": "\u0a2a\u0a70\u0a1c\u0a3e\u0a2c\u0a40 (Punjabi)",       "gtts_lang": "hi", "whisper_lang": "pa", "edge_voice": "hi-IN-SwaraNeural"},
-    {"code": "od-IN", "name": "\u0b13\u0b21\u0b3c\u0b3f\u0b06 (Odia)",           "gtts_lang": "hi", "whisper_lang": "or", "edge_voice": "hi-IN-SwaraNeural"},
+    # Punjabi and Odia use their own language codes first. If a deployment's
+    # edge-tts catalog does not expose the voice, the synthesize route falls
+    # through to gTTS with the same language instead of speaking Hindi.
+    {"code": "pa-IN", "name": "\u0a2a\u0a70\u0a1c\u0a3e\u0a2c\u0a40 (Punjabi)",       "gtts_lang": "pa", "whisper_lang": "pa", "edge_voice": "pa-IN-OjasNeural"},
+    {"code": "od-IN", "name": "\u0b13\u0b21\u0b3c\u0b3f\u0b06 (Odia)",           "gtts_lang": "or", "whisper_lang": "or", "edge_voice": "or-IN-SukantNeural"},
 
-    # Maithili and Bhojpuri — Devanagari script, hi-IN neural voice speaks them correctly
+    # Maithili and Bhojpuri do not have dedicated Edge/gTTS voices. Their text
+    # remains in Devanagari and uses the Hindi voice as the closest script-safe
+    # fallback rather than silently switching the UI language to English.
     {"code": "mai-IN", "name": "मैथिली (Maithili)",     "gtts_lang": "hi", "whisper_lang": "hi", "edge_voice": "hi-IN-SwaraNeural"},
     {"code": "bho-IN", "name": "भोजपुरी (Bhojpuri)",    "gtts_lang": "hi", "whisper_lang": "hi", "edge_voice": "hi-IN-MadhurNeural"},
 ]
@@ -253,38 +256,9 @@ async def transcribe(
 #   1. edge-tts  — Microsoft Neural voices: human-like, natural prosody, free, no API key
 #   2. gTTS      — Google TTS: robotic but reliable fallback
 #
-# Punjabi (Gurmukhi) and Odia scripts are not natively supported by any edge-tts
-# neural voice. We transliterate them to Devanagari first using indic-transliteration,
-# then speak using hi-IN-SwaraNeural — the result is phonetically accurate.
-
-def _transliterate_to_devanagari(text: str, script: str) -> str:
-    """Convert Gurmukhi or Odia text to Devanagari for hi-IN neural voice."""
-    try:
-        from indic_transliteration import sanscript
-        from indic_transliteration.sanscript import transliterate
-        src = sanscript.GURMUKHI if script == "gurmukhi" else sanscript.ORIYA
-        return transliterate(text, src, sanscript.DEVANAGARI)
-    except Exception as e:
-        log.warning(f"Transliteration failed ({script}): {e}")
-        return text  # return original; edge-tts will handle what it can
-
-
-# Maps language code → which script needs transliteration before edge-tts
-_TRANSLITERATE = {
-    "pa-IN": ("gurmukhi", "hi-IN-SwaraNeural"),
-    "od-IN": ("oriya",    "hi-IN-SwaraNeural"),
-}
-
-
 async def _synthesize_edge(text: str, voice: str, language: str) -> bytes:
-    """Return raw MP3 bytes via edge-tts Neural voice.
-    For pa-IN/od-IN, transliterates the script to Devanagari first.
-    """
+    """Return raw MP3 bytes via an Edge Neural voice in the requested script."""
     import edge_tts
-    # Transliterate unsupported scripts before sending to edge-tts
-    if language in _TRANSLITERATE:
-        script, _ = _TRANSLITERATE[language]
-        text = _transliterate_to_devanagari(text, script)
 
     buf = io.BytesIO()
     communicate = edge_tts.Communicate(text, voice)
@@ -296,6 +270,14 @@ async def _synthesize_edge(text: str, voice: str, language: str) -> bytes:
     if not data:
         raise RuntimeError("edge-tts returned empty audio")
     return data
+
+
+def _transliterate_for_script_fallback(text: str, language: str) -> str:
+    """Convert scripts without an installed TTS voice to Devanagari phonetics."""
+    from indic_transliteration import sanscript
+    from indic_transliteration.sanscript import transliterate
+    source = sanscript.GURMUKHI if language == "pa-IN" else sanscript.ORIYA
+    return transliterate(text, source, sanscript.DEVANAGARI)
 
 
 def _synthesize_gtts(text: str, gtts_lang: str) -> bytes:
@@ -556,13 +538,26 @@ async def synthesize(body: dict):
             except Exception as e:
                 log.warning(f"edge-tts voice={edge_voice} failed: {e} — falling back to gTTS")
 
-        # ── 2. gTTS fallback ──────────────────────────────────────────────────
-        audio_bytes = _synthesize_gtts(text, gtts_lang)
+        # ── 2. gTTS fallback in the requested language ───────────────────────
+        try:
+            audio_bytes = _synthesize_gtts(text, gtts_lang)
+            fallback_voice = f"gtts-{gtts_lang}"
+        except Exception as gtts_error:
+            # Google currently has no pa/or voices. Keep the user's script in
+            # the response and provide guaranteed speech via the closest
+            # script-safe Hindi Neural voice as a last-resort audio fallback.
+            if language not in ("pa-IN", "od-IN"):
+                raise
+            log.warning(f"gTTS language={gtts_lang} unavailable: {gtts_error}")
+            fallback_text = _transliterate_for_script_fallback(text, language)
+            audio_bytes = await _synthesize_edge(fallback_text, "hi-IN-SwaraNeural", "hi-IN")
+            fallback_voice = "hi-IN-SwaraNeural-script-fallback"
+
         audio_b64   = base64.b64encode(audio_bytes).decode("utf-8")
         return {
             "success":  True,
             "language": language,
-            "voice":    f"gtts-{gtts_lang}",
+            "voice":    fallback_voice,
             "text":     text,
             "audioUrl": f"data:audio/mp3;base64,{audio_b64}",
             "provider": "gtts",

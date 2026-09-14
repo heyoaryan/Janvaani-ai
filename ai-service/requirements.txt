@@ -19,3 +19,10 @@ httpx==0.27.2
 
 # Web search (optional — only needed if SEARCHAPI/SERPAPI/BING keys are set)
 requests==2.32.3
+
+# OCR — document text extraction (pytesseract needs system tesseract-ocr installed)
+pytesseract==0.3.13
+Pillow==11.1.0
+pdf2image==1.17.0
+pypdf2==3.0.1
+easyocr==1.7.2

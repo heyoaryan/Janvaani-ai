@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/onboarding", tags=["Onboarding"])
 
-# In-memory profile store (resets on restart — fine for hackathon)
+# In-memory profile store (resets on restart)
 _profiles: dict = {}
 
 
@@ -16,6 +16,9 @@ def complete_onboarding(body: dict):
     occupation = body.get("occupation", "").strip()
     age        = body.get("age")
     session_id = body.get("sessionId")
+    city       = body.get("city", "").strip()
+    dob        = body.get("dob", "")
+    gender     = body.get("gender", "")
 
     if not name or not occupation or age is None:
         raise HTTPException(status_code=400, detail="name, occupation, and age are required")
@@ -26,6 +29,9 @@ def complete_onboarding(body: dict):
         "name":       name,
         "occupation": occupation,
         "age":        int(age),
+        "city":       city,
+        "dob":        dob,
+        "gender":     gender,
         "createdAt":  datetime.now(timezone.utc).isoformat(),
     }
     _profiles[sid] = profile
