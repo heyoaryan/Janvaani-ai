@@ -132,11 +132,15 @@ async function callAiChat(input, language, sessionId) {
     },
   };
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7000);
+
   try {
     const response = await fetch(`${AI_SERVICE_URL}/api/voice/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: controller.signal,
     });
     const data = await response.json();
     if (!response.ok) {
@@ -152,6 +156,8 @@ async function callAiChat(input, language, sessionId) {
       return 'ਮੈਂ ਯੋਜਨਾਵਾਂ ਅਤੇ ਅਰਜ਼ੀ ਟਰੈਕਿੰਗ ਵਿੱਚ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣਾ ਸਵਾਲ ਦੱਸੋ।';
     }
     return 'मैं आपके लिए योजना और आवेदन ट्रैकिंग में मदद कर सकता हूँ। कृपया अपना सवाल बताइए।';
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
