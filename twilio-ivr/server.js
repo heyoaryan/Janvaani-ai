@@ -94,8 +94,16 @@ function buildSay(language, text) {
   return `<Say language="${language}" voice="${getLanguageVoice(language)}">${escapeXml(text)}</Say>`;
 }
 
-function buildGather(action, language, prompt, numDigits = 1, speech = false) {
-  const baseUrl = process.env.WEBHOOK_BASE_URL || 'http://localhost:3000';
+function getBaseUrl(req) {
+  const configured = (process.env.WEBHOOK_BASE_URL || '').trim().replace(/\/$/, '');
+  if (configured) return configured;
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0];
+  const host = (req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3000').split(',')[0];
+  return `${proto}://${host}`;
+}
+
+function buildGather(req, action, language, prompt, numDigits = 1, speech = false) {
+  const baseUrl = getBaseUrl(req);
   const input = speech ? 'input="speech dtmf"' : `numDigits="${numDigits}"`;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -168,9 +176,10 @@ app.post('/voice', (req, res) => {
     console.warn('⚠️ WEBHOOK_BASE_URL is not set to a public HTTPS URL. Twilio trial calls will fail.');
   }
 
+  const baseUrl = getBaseUrl(req);
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech dtmf" action="${process.env.WEBHOOK_BASE_URL || 'http://localhost:3000'}/handle-language" method="POST" timeout="10" speechTimeout="7">
+  <Gather input="speech dtmf" action="${baseUrl}/handle-language" method="POST" timeout="10" speechTimeout="7">
     ${buildSay('hi-IN', 'नमस्ते! मैं JanVaani सहायक हूँ। कृपया अपनी भाषा चुनें। 1 के लिए हिन्दी, 2 के लिए English, 3 के लिए ਪੰਜਾਬी।')}
   </Gather>
   <Say language="hi-IN" voice="Polly.Aditi">कोई विकल्प नहीं चुना गया। फिर से कोशिश करें।</Say>
@@ -185,9 +194,10 @@ app.post('/handle-language', (req, res) => {
   const language = resolveLanguageChoice(digit) || 'hi-IN';
   setState(callSid, { language, selectedLanguage: language });
 
+  const baseUrl = getBaseUrl(req);
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech dtmf" action="${process.env.WEBHOOK_BASE_URL || 'http://localhost:3000'}/handle-main-choice" method="POST" timeout="10" speechTimeout="7">
+  <Gather input="speech dtmf" action="${baseUrl}/handle-main-choice" method="POST" timeout="10" speechTimeout="7">
     ${buildSay(language, MAIN_MENU_TEXT[language] || MAIN_MENU_TEXT['hi-IN'])}
   </Gather>
   <Say language="${language}" voice="${getLanguageVoice(language)}">${escapeXml(language === 'hi-IN' ? 'कोई विकल्प नहीं चुना गया।' : language === 'pa-IN' ? 'ਕੋਈ ਵਿਕਲਪ ਨਹੀਂ ਚੁਣਿਆ ਗਿਆ।' : 'No option was selected.')}</Say>
@@ -211,7 +221,7 @@ app.post('/handle-main-choice', async (req, res) => {
         ? 'ਕਿਰਪਾ ਕਰਕੇ ਆਪਣਾ ਸਕੀਮ ਸਵਾਲ ਬੋਲੋ। ਅਸੀਂ ਤੁਹਾਨੂੰ ਤੁਹਾਡੀ ਚੁਣੀ ਹੋਈ ਭਾਸ਼ਾ ਵਿੱਚ ਜਵਾਬ ਦੇਵਾਂਗੇ।'
         : 'कृपया अपनी योजना से जुड़ा सवाल बोलिए। हम आपके चयनित भाषा में जवाब देंगे।';
 
-    const twiml = buildGather('/handle-scheme-query', language, prompt, 1, true);
+    const twiml = buildGather(req, '/handle-scheme-query', language, prompt, 1, true);
     res.type('text/xml').send(twiml);
     return;
   }
@@ -223,9 +233,10 @@ app.post('/handle-main-choice', async (req, res) => {
         ? 'ਕਿਰਪਾ ਕਰਕੇ ਆਪਣਾ ਅਰਜ਼ੀ ਨੰਬਰ ਦੱਸੋ ਜਾਂ ਟਾਈਪ ਕਰੋ। ਅਸੀਂ ਅਰਜ਼ੀ ਦੀ ਸਥਿਤੀ ਦੱਸਾਂਗੇ।'
         : 'कृपया अपना आवेदन नंबर बताइए या टाइप कीजिए। हम आवेदन की स्थिति बताएंगे।';
 
+    const baseUrl = getBaseUrl(req);
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="10" action="${process.env.WEBHOOK_BASE_URL || 'http://localhost:3000'}/handle-application-status" method="POST" timeout="10">
+  <Gather numDigits="10" action="${baseUrl}/handle-application-status" method="POST" timeout="10">
     ${buildSay(language, prompt)}
   </Gather>
   <Say language="${language}" voice="${getLanguageVoice(language)}">${escapeXml(language === 'hi-IN' ? 'कोई आवेदन नंबर दर्ज नहीं किया गया।' : language === 'pa-IN' ? 'ਕੋਈ ਅਰਜ਼ੀ ਨੰਬਰ ਦਰਜ ਨਹੀਂ ਕੀਤਾ ਗਿਆ।' : 'No application number was entered.')}</Say>
