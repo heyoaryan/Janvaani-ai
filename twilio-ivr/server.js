@@ -241,7 +241,7 @@ app.post('/handle-main-choice', async (req, res) => {
     const baseUrl = getBaseUrl(req);
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather numDigits="10" action="${baseUrl}/handle-application-status" method="POST" timeout="10">
+  <Gather input="speech dtmf" language="${language}" action="${baseUrl}/handle-application-status" method="POST" timeout="10" speechTimeout="5">
     ${buildSay(language, prompt)}
   </Gather>
   <Say language="${language}" voice="${getLanguageVoice(language)}">${escapeXml(language === 'hi-IN' ? 'कोई आवेदन नंबर दर्ज नहीं किया गया।' : language === 'pa-IN' ? 'ਕੋਈ ਅਰਜ਼ੀ ਨੰਬਰ ਦਰਜ ਨਹੀਂ ਕੀਤਾ ਗਿਆ।' : 'No application number was entered.')}</Say>

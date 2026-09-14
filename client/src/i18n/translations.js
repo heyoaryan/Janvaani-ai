@@ -54,6 +54,7 @@ export const translations = {
       missingDocs: 'दस्तावेज़ सूची',
       lifeEvents: 'जीवन की घटनाएं',
       scamCheck: 'धोखाधड़ी जांच',
+      applicationTracker: 'आवेदन ट्रैकर',
     },
     
     // Header
@@ -479,6 +480,7 @@ export const translations = {
       missingDocs: 'Doc checklist',
       lifeEvents: 'Life Events',
       scamCheck: 'Scam Check',
+      applicationTracker: 'Application Tracker',
     },
     
     // Header

@@ -13,6 +13,7 @@ import {
   Sparkles,
   Bookmark,
   UserCircle,
+  LocateFixed,
 } from 'lucide-react';
 import Logo from '@/components/brand/Logo';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -33,6 +34,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { path: '/missing-docs', icon: FileText, key: 'nav.missingDocs' },
     { path: '/life-events', icon: Calendar, key: 'nav.lifeEvents' },
     { path: '/scam-check', icon: Shield, key: 'nav.scamCheck' },
+    { path: '/application-tracker', icon: LocateFixed, key: 'nav.applicationTracker' },
   ];
 
   return (
@@ -94,7 +96,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <item.icon className={`w-5 h-5 transition-transform group-hover:scale-110 ${
                   isActive ? 'text-white' : 'text-gray-400 group-hover:text-primary-600'
                 }`} />
-                <span className="flex-1">{t(item.key)}</span>
+                <span className="flex-1">{item.label || t(item.key)}</span>
                 {isActive && (
                   <motion.div
                     layoutId="activeIndicator"

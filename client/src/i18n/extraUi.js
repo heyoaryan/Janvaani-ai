@@ -190,6 +190,9 @@ const docsChecklistEn = {
 
 export const extraUi = {
   'hi-IN': {
+    applicationTracker: {
+      eyebrow: 'आवेदन सहायता केंद्र', title: 'अपने आवेदन की स्थिति देखें', subtitle: 'रेफरेंस आईडी डालकर देखें कि आपका आवेदन किस चरण पर है।', referencePlaceholder: 'जैसे APP-1001', track: 'आवेदन ट्रैक करें', demoIds: 'डेमो आईडी: APP-1001, APP-1002, APP-1003, APP-1004, APP-1005', emptyTitle: 'आवेदन ट्रैकर', emptyText: 'आपके आवेदन की पूरी यात्रा यहां दिखाई देगी।', notFoundTitle: 'रेफरेंस आईडी नहीं मिली', notFoundText: 'आईडी जांचकर दोबारा कोशिश करें। डेमो के लिए APP-1001 से APP-1005 तक इस्तेमाल करें।', reference: 'रेफरेंस आईडी', scheme: 'योजना', currentStage: 'वर्तमान चरण', nextUpdate: 'अगला अपडेट', benefit: 'लाभ', submittedOn: 'आवेदन की तारीख', journey: 'आवेदन की यात्रा', journeyText: 'आपका आवेदन यहां तक पहुंचा है', status: { underReview: 'जांच चल रही है', approved: 'स्वीकृत', pending: 'दस्तावेज बाकी हैं', inProgress: 'प्रक्रिया में', paymentScheduled: 'भुगतान तय है' }, stage: { documentVerification: 'दस्तावेज सत्यापन', sanctioned: 'मंजूरी मिल गई', lastDocumentPending: 'आखिरी दस्तावेज बाकी', claimProcessing: 'दावे की प्रक्रिया', disbursement: 'भुगतान जारी होने वाला है' }, steps: { submitted: 'आवेदन जमा हुआ', verified: 'दस्तावेज सत्यापित', departmentReview: 'विभागीय जांच', paymentReleased: 'भुगतान जारी', approved: 'आवेदन स्वीकृत', firstInstallment: 'पहली किस्त', incomeCertificate: 'आय प्रमाण पत्र', scholarshipCredited: 'छात्रवृत्ति जमा', claimSubmitted: 'दावा जमा हुआ', fieldAssessment: 'मैदानी जांच', claimProcessing: 'दावे की प्रक्रिया', amountCredited: 'राशि जमा', eligibilityVerified: 'पात्रता सत्यापित', paymentScheduled: 'भुगतान तय' }, dates: { inProgress: 'प्रगति में', upcoming: 'आगामी', actionNeeded: 'कार्रवाई जरूरी' },
+    },
     onboarding: { stepStateTitle: 'आप किस राज्य में रहते हैं?', stepStateSubtitle: 'राज्य की योजनाएँ दिखाने के लिए' },
     schemeFinder: { filterByState: 'स्थान से छानें', myState: 'मेरा राज्य', allLocations: 'सभी स्थान', locationHint: 'आपके राज्य की योजनाएँ पहले' },
     dashboard: {
@@ -207,6 +210,9 @@ export const extraUi = {
     states: statesHi,
   },
   'en-IN': {
+    applicationTracker: {
+      eyebrow: 'Application support desk', title: 'Track your application', subtitle: 'Enter your reference ID to see how far your application has progressed.', referencePlaceholder: 'For example APP-1001', track: 'Track application', demoIds: 'Demo IDs: APP-1001, APP-1002, APP-1003, APP-1004, APP-1005', emptyTitle: 'Application tracker', emptyText: 'Your complete application journey will appear here.', notFoundTitle: 'Reference ID not found', notFoundText: 'Check the ID and try again. Use APP-1001 to APP-1005 for the demo.', reference: 'Reference ID', scheme: 'Scheme', currentStage: 'Current stage', nextUpdate: 'Next update', benefit: 'Benefit', submittedOn: 'Submitted on', journey: 'Application journey', journeyText: 'Your application has reached this stage', status: { underReview: 'Under review', approved: 'Approved', pending: 'Documents pending', inProgress: 'In progress', paymentScheduled: 'Payment scheduled' }, stage: { documentVerification: 'Document verification', sanctioned: 'Sanctioned', lastDocumentPending: 'Last document pending', claimProcessing: 'Claim processing', disbursement: 'Disbursement' }, steps: { submitted: 'Application submitted', verified: 'Documents verified', departmentReview: 'Department review', paymentReleased: 'Payment released', approved: 'Application approved', firstInstallment: 'First instalment', incomeCertificate: 'Income certificate', scholarshipCredited: 'Scholarship credited', claimSubmitted: 'Claim submitted', fieldAssessment: 'Field assessment', claimProcessing: 'Claim processing', amountCredited: 'Amount credited', eligibilityVerified: 'Eligibility verified', paymentScheduled: 'Payment scheduled' }, dates: { inProgress: 'In progress', upcoming: 'Upcoming', actionNeeded: 'Action needed' },
+    },
     onboarding: { stepStateTitle: 'Which state do you live in?', stepStateSubtitle: 'So we can show state schemes' },
     schemeFinder: { filterByState: 'Filter by location', myState: 'My state', allLocations: 'All locations', locationHint: 'State schemes for your location first' },
     dashboard: {
@@ -305,6 +311,7 @@ const regionalDashboard = {
 
 Object.keys(regionalScam).forEach((code) => {
   extraUi[code] = {
+    applicationTracker: { ...extraUi['en-IN'].applicationTracker },
     onboarding: extraUi['en-IN'].onboarding,
     schemeFinder: extraUi['en-IN'].schemeFinder,
     dashboard: { ...extraUi['en-IN'].dashboard, ...(regionalDashboard[code] || {}) },
@@ -315,6 +322,10 @@ Object.keys(regionalScam).forEach((code) => {
     docHowTo: howToEn,
     states: statesEn,
   };
+});
+
+['mai-IN', 'bho-IN'].forEach((code) => {
+  extraUi[code] = { applicationTracker: { ...extraUi['en-IN'].applicationTracker } };
 });
 
 // Overlay regional eligibility/docs checklist in native language where we have it
